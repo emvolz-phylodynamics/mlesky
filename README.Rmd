@@ -1,0 +1,78 @@
+# mlesky : Maximum likelihood inference of effective population size through time using GMRF-skygrid approach
+
+This package is related to previous Bayesian implementations of the Bayesian skygrid model with the following notable differences: 
+
+* The GMRF process takes place on the 2nd-order difference of log(Ne), which is more similar to the `skygrowth` model of Volz & Didelot 
+* When computing the GMRF likelihood, the smoothing parameter (ie the precision of random walk) is fixed
+* We use a novel cross-validation approach for selecting the smoothing parameter 
+
+## Installation
+
+In R, install the `devtools` package and run 
+```
+devtools::install_github('emvolz-phylodynamics/mleksy')
+```
+
+## Roadmap 
+
+* Add non-parametric bootstrap as alternative for CI
+* Add regression models for non-genetic time-series 
+* Parameter to select order of differencing in GMRF 
+
+## MRSA example 
+
+Here we reanalyze dated phylogenies from __Volz & Didelot, Systematic Biology 2018__. 
+
+```{r}
+require(mlesky)
+
+# load the tree
+tree <- ape::read.tree(system.file('mrsa.nwk', package = 'mlesky'))
+
+# run mleksy with defaults
+(fit <- mlskygrid( tree ))
+plot ( fit )
+
+```
+
+Note there's a lot of uncertainty >20 years in the past when there are very few lineages remaining in the tree. We can focus the analysis on the portion of the tree that is more informative using the `NeStartTimeBeforePresent` parameter. 
+We also us cross-validation to optimize the smoothing parameter: 
+```{r}
+(
+fit <- mlskygrid( tree
+  , tau = NULL, tau_lower = 1, tau_upper = 20
+  , ncpu = 6
+  , res = 50
+  , NeStartTimeBeforePresent = 20)
+)
+
+plot( fit )
+```
+
+## HIV example 
+
+We analyzed 399 HIV-1 sequences from Senegal between 1990 and 2014. 
+All sequences are subtype CRF02_AG. `treedater` analysis shows a common ancestor around 1970 with LTT having rapid change in the early 1980s when the HIV epidemic was expanding. 
+
+Here is the `mlesky` analysis 
+
+```{r} 
+require(mlesky)
+
+# load the tree 
+tree <- ape::read.tree( system.file('sn02ag2.0.nwk', package='mlesky') )
+
+# mlesky with defaults (tau = 1, res = 25)
+(fit <- mlskygrid( tree ))
+plot( fit )
+```
+
+Now we use cross-validation to find the smoothing parameter and increase the time resolution: 
+
+```{r} 
+( fit <- mlskygrid( tree , tau = NULL, tau_lower = .1, tau_upper = 20 , ncpu = 6, res = 100) )
+
+plot(fit) 
+```
+
+Cross-validation indicates a higher smoothing parameter is optimal. 
