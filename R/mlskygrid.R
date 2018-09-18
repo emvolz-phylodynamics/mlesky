@@ -75,7 +75,7 @@ x add covars for
 	cvsets = lapply( 1:ncross, function(icross) seq( icross, nrow(tredat), by = ncross ) )
 	
 	roughness_penalty <- function(logne){
-		sum( dnorm( diff(diff( logne)), 0, sd = dh/tau, log = TRUE) )
+		sum( dnorm( diff(diff( logne)), 0, sd = sqrt(dh/tau), log = TRUE) )
 	}
 	
 	lterms <- function(logne)
@@ -183,7 +183,7 @@ mlskygrid <- function(tre
 	
 	
 	roughness_penalty <- function(logne){
-		sum( dnorm( diff(diff( logne)), 0, sd = dh/tau, log = TRUE) )
+		sum( dnorm( diff(diff( logne)), 0, sd = sqrt(dh/tau), log = TRUE) )
 	}
 	
 	lterms <- function(logne)
@@ -196,6 +196,7 @@ mlskygrid <- function(tre
 			nco * ( log( ltt_terms ) - logne[ ne_bin ]  )
 		})
 		coterms[ is.na(coterms)] <- 0
+#~ browser()
 		coterms + sterms 
 	}
 	
