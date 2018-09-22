@@ -14,8 +14,11 @@ x add covars for
 
 
 # derive timeseries of coalescent and ltt along appropriate time axis 
-.tre2df <- function( tre, res, maxHeight = Inf ){
-	n <- length( tre$tip )
+.tre2df <- function( tre, res, maxHeight = Inf, minLTT = NULL ){
+	n <- Ntip( tre )
+	if (is.null( minLTT)) 
+	  minLTT <- floor( n / 5 ) 
+	
 	D <- ape::node.depth.edgelength( tre )
 	rh <- max( D[1:n] )
 	sts <- D[1:n]
@@ -50,6 +53,23 @@ x add covars for
 	
 	tredat$dh <- ne_haxis[2] -  ne_haxis[1] 
 	
+	# combine ne bins:
+	done <- ( minLTT == 1 )
+	while(!done){
+		done <- TRUE
+		bin2maxltt <- sapply( 1:res, function( bin ){
+			i = which(  tredat$ne_bin == bin )
+			if (length(i) > 0)
+				return( max( tredat$ltt[ i ] ) )
+			-Inf
+		})
+		for (i in 1:nrow(tredat)){
+			if ( bin2maxltt[ tredat$ne_bin[i] ] < minLTT ){
+				tredat$ne_bin[i] <- max( 1, tredat$ne_bin[i] - 1 )
+				done <- FALSE
+			}
+		}
+	}
 	tredat	
 }
 
@@ -149,22 +169,31 @@ mlskygrid <- function(tre
   , ncpu = 1
   , quiet = FALSE
   , NeStartTimeBeforePresent = Inf 
+  , minLTT = 1 
+  , ne0 = NULL
 ){
-	tredat <- .tre2df( tre, res , NeStartTimeBeforePresent )
-	
+	print(system.time(
+	tredat <- .tre2df( tre = tre, res = res , maxHeight= NeStartTimeBeforePresent, minLTT = minLTT )
+	))
 	if ( is.null( tau  ) ) {
 		if ( is.null(tau_lower) | is.null(tau_upper))
 		 stop('If *tau* is not specified, boundaries *tau_lower* and *tau_upper* must be specified.')
 	}
 	
-	coint <- ape::coalescent.intervals( tre )
-	with( coint , {
-		abs(interval.length) * ( lineages * (lineages-1) / 2) 
-	}) -> .ne
-	.ne[ .ne == 0 ] <- NA
-	ne0 <- median( .ne, na.rm=T)
-	
-	ne <- rlnorm( res , log( ne0 ), .2 ) # add some jitter
+	if ( is.null( ne0 )){
+		coint <- ape::coalescent.intervals( tre )
+		with( coint , {
+			abs(interval.length) * ( lineages * (lineages-1) / 2) 
+		}) -> .ne
+		.ne[ .ne == 0 ] <- NA
+		ne0 <- median( .ne, na.rm=T)
+		ne <- rlnorm( res , log( ne0 ), .2 ) # add some jitter
+	} else{
+		if ( length(ne0)==1){
+			ne0 <- rep( ne0, res )
+		}
+		ne = ne0
+	}
 	
 	dh<- tredat$dh[1]
 	
@@ -230,7 +259,7 @@ mlskygrid <- function(tre
 	ne_ci <- cbind( nelb, ne, neub )
 	
 	growthrate <-  c( diff ( ne  ) / (ne[-res] ) / dh , NA)
-	
+	loglik = of ( fit$par ) - roughness_penalty ( fit$par )
 	rv <- list( 
 		ne =  ne
 	  , ne_ci = ne_ci  
@@ -239,8 +268,10 @@ mlskygrid <- function(tre
 	  , time = sort( -tredat$h[ tredat$type == 'neswitch' ] )
 	  , tredat = tredat
 	  , tre = tre	
-	  , loglik = fit$value
 	  , sigma = fsigma 
+	  , optim = fit 
+	  , loglik = loglik
+	  , rp = roughness_penalty( fit$par )
 	)
 	
 	class(rv) <- 'mlskygrid'
