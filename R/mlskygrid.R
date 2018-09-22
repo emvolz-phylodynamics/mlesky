@@ -172,9 +172,7 @@ mlskygrid <- function(tre
   , minLTT = 1 
   , ne0 = NULL
 ){
-	print(system.time(
 	tredat <- .tre2df( tre = tre, res = res , maxHeight= NeStartTimeBeforePresent, minLTT = minLTT )
-	))
 	if ( is.null( tau  ) ) {
 		if ( is.null(tau_lower) | is.null(tau_upper))
 		 stop('If *tau* is not specified, boundaries *tau_lower* and *tau_upper* must be specified.')
