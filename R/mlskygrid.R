@@ -14,7 +14,7 @@ x add covars for
 
 
 # derive timeseries of coalescent and ltt along appropriate time axis 
-.tre2df <- function( tre, res, maxHeight = Inf, minLTT = NULL ){
+.tre2df <- function( tre, res, maxHeight = Inf, minLTT = NULL, adapt_time_axis = TRUE ){
 	n <- Ntip( tre )
 	if (is.null( minLTT)) 
 	  minLTT <- floor( n / 5 ) 
@@ -25,6 +25,13 @@ x add covars for
 	maxHeight <- min( rh, maxHeight )
 	
 	ne_haxis <- seq( maxHeight/res ,maxHeight, le = res )
+	if (adapt_time_axis){
+		#.neh <- approx(  1:Nnode(tre), rev(branching.times(tre)), xout = seq(1, Nnode(tre)-1, length.out = res-1 ) )$y
+		# TODO dont use branching.times
+		ne_haxis <- approx(  seq(0,1,length.out=Nnode(tre)), rev(branching.times(tre)), xout = seq(1/res, 1-1/res, length.out = res-1 ) )$y
+	}
+	dh_ne <- diff( ne_haxis )
+	
 	shs <- rh - sts 
 	inhs <- rh - D[ (n+1):(n + tre$Nnode) ]
 	u_shs <- unique( shs ) 
@@ -51,8 +58,6 @@ x add covars for
 	tredat$intervalLength <- c( 0, diff( tredat$h ))
 	tredat$ltt_terms <- tredat$ltt * (tredat$ltt-1) / 2
 	
-	tredat$dh <- ne_haxis[2] -  ne_haxis[1] 
-	
 	# combine ne bins:
 	done <- ( minLTT == 1 )
 	while(!done){
@@ -70,7 +75,33 @@ x add covars for
 			}
 		}
 	}
+	
+	tredat$dh <- dh_ne[ tredat$ne_bin ] 
+	
 	tredat	
+}
+
+#' experimental test for optimal res
+#' @export
+mlesky.lrt <- function(tree, maxres = 100, ... ){
+	done <- FALSE
+	res <- 0
+	aic0 <- Inf 
+	while(!done)
+	{
+		res <- res + 1
+		ll1 <- mlskygrid( tree, tau = 1e-6, res = res, ...)$loglik
+		aic1 <- 2 * res - 2 * ll1
+		
+		if ( (aic0 < aic1)  )
+		  done <- TRUE 
+		if (res == (maxres))
+		  done <- TRUE
+		
+		print( paste( aic0, aic1, res, ll1 ))
+		aic0 <- aic1
+	}
+	res - 1
 }
 
 
