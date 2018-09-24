@@ -14,8 +14,8 @@ x add covars for
 
 
 # derive timeseries of coalescent and ltt along appropriate time axis 
-.tre2df <- function( tre, res, maxHeight = Inf, minLTT = NULL, adapt_time_axis = TRUE ){
-	n <- Ntip( tre )
+.tre2df <- function( tre, res, maxHeight = Inf, minLTT = 1, adapt_time_axis = TRUE ){
+	n <- ape::Ntip( tre )
 	if (is.null( minLTT)) 
 	  minLTT <- floor( n / 5 ) 
 	
@@ -24,18 +24,18 @@ x add covars for
 	sts <- D[1:n]
 	maxHeight <- min( rh, maxHeight )
 	
-	ne_haxis <- seq( maxHeight/res ,maxHeight, le = res )
-	if (adapt_time_axis){
-		#.neh <- approx(  1:Nnode(tre), rev(branching.times(tre)), xout = seq(1, Nnode(tre)-1, length.out = res-1 ) )$y
-		# TODO dont use branching.times
-		ne_haxis <- approx(  seq(0,1,length.out=Nnode(tre)), rev(branching.times(tre)), xout = seq(1/res, 1-1/res, length.out = res-1 ) )$y
-	}
-	dh_ne <- diff( ne_haxis )
-	
 	shs <- rh - sts 
-	inhs <- rh - D[ (n+1):(n + tre$Nnode) ]
+	inhs <- sort( rh - D[ (n+1):(n + tre$Nnode) ] )
 	u_shs <- unique( shs ) 
 	u_inhs <- unique( inhs )
+	nnode <- sum( inhs  <= maxHeight)
+	
+	ne_haxis <- seq( maxHeight/res ,maxHeight, le = res )
+	if (adapt_time_axis){
+		ne_haxis <- approx(  seq(0,1,length.out=nnode), inhs[inhs <= maxHeight], xout = seq(1/res, 1-1/res, length.out = res-1 ) )$y
+	}
+	dh_ne <- diff( c(0, ne_haxis, maxHeight ) )
+	
 	
 	#< h , event, ltt(descending), intervallength, nco, likterm, ne_bin >
 	tredat <- data.frame( h= c( u_shs, u_inhs, ne_haxis) 
@@ -77,31 +77,25 @@ x add covars for
 	}
 	
 	tredat$dh <- dh_ne[ tredat$ne_bin ] 
-	
 	tredat	
 }
 
-#' experimental test for optimal res
-#' @export
-mlesky.lrt <- function(tree, maxres = 100, ... ){
-	done <- FALSE
-	res <- 0
-	aic0 <- Inf 
-	while(!done)
-	{
-		res <- res + 1
-		ll1 <- mlskygrid( tree, tau = 1e-6, res = res, ...)$loglik
-		aic1 <- 2 * res - 2 * ll1
-		
-		if ( (aic0 < aic1)  )
-		  done <- TRUE 
-		if (res == (maxres))
-		  done <- TRUE
-		
-		print( paste( aic0, aic1, res, ll1 ))
-		aic0 <- aic1
+
+#' Optimize the skygrid time axis resolution using AIC criterion
+#' 
+#' @param tree A dated phylogeny in ape::phylo format
+#' @param res A vector of time axis resolution parameters to test 
+#' @param ncpu Integer number of cores to use with parallel processing 
+#' @param ... Remaining paramters are passed to mlskygrid 
+#' @export 
+optim_res_aic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ... )
+{
+	res2aic <- function(r){
+		ll1 <- mlskygrid( tree, res = r, ncpu =ncpu,  ...)$loglik
+		 2 * r - 2 * ll1
 	}
-	res - 1
+	aics <- unlist( parallel::mclapply( res,  res2aic, mc.cores = ncpu ) )
+	res[ which.min( aics )]
 }
 
 
@@ -174,7 +168,7 @@ mlesky.lrt <- function(tree, maxres = 100, ... ){
 #' 
 #'
 #' @param tre A dated phylogeny in ape::phylo format (see documentation for ape)
-#' @param res Length of time axis over which to estimate Ne(t) (integer)
+#' @param res Length of time axis over which to estimate Ne(t) (integer). If NULL, will search for a good value (see *optim_res_aic*)
 #' @param tau Precision parameter. Larger values generate smoother trajectories of Ne(t). If NULL, will optimize using cross-validation.
 #' @param tau_lower Lower bound for precision parameter if estimating
 #' @param tau_upper Upper bound for precision parameter if estimating
@@ -183,6 +177,8 @@ mlesky.lrt <- function(tree, maxres = 100, ... ){
 #' @param ncpu If doing cross-validation, each fold will be handled in parallel if ncpu > 1 (see parallel package)
 #' @param quiet Provide verbose output from optimizer? 
 #' @param NeStartTimeBeforePresent If <Inf, will only estimate Ne(t) between the most recent sample and this time before the most recent sample
+#' @param adapt_time_axis If TRUE will choose Ne(t) change points in periods with high frequency of phylogenetic branching
+#' @param ne0 Vector of length *res* giving starting conditions of Ne(t) for optimization
 #' @return A fitted model including effective size through time
 #' @export
 # @examples
@@ -200,10 +196,17 @@ mlskygrid <- function(tre
   , ncpu = 1
   , quiet = FALSE
   , NeStartTimeBeforePresent = Inf 
-  , minLTT = 1 
+  #, minLTT = 1 
   , ne0 = NULL
+  , adapt_time_axis = TRUE 
 ){
-	tredat <- .tre2df( tre = tre, res = res , maxHeight= NeStartTimeBeforePresent, minLTT = minLTT )
+	if ( is.null( res )){
+		res = optim_res_aic( tre, tau = tau, tau_lower = tau_lower, tau_upper = tau_upper, tau_tol = tau_tol, ncross = ncross, ncpu = ncpu , quiet = quiet, NeStartTimeBeforePresent = NeStartTimeBeforePresent, ne0 = ne0, adapt_time_axis = adapt_time_axis)
+	}
+	if ( res < 3) 
+	  stop('The minimum allowable *res* value is 3.')
+	
+	tredat <- .tre2df( tre = tre, res = res , maxHeight= NeStartTimeBeforePresent )
 	if ( is.null( tau  ) ) {
 		if ( is.null(tau_lower) | is.null(tau_upper))
 		 stop('If *tau* is not specified, boundaries *tau_lower* and *tau_upper* must be specified.')
@@ -224,8 +227,9 @@ mlskygrid <- function(tre
 		ne = ne0
 	}
 	
-	dh<- tredat$dh[1]
 	
+	dh <- sapply( 1:res, function(i) tredat$dh[ which(tredat$ne_bin==i)[1]] )
+	dh2 <- dh[ -c(1, length(dh)) ]
 	
 	# estimate tau 
 	tauof <- function(tau){
@@ -241,7 +245,7 @@ mlskygrid <- function(tre
 	
 	
 	roughness_penalty <- function(logne){
-		sum( dnorm( diff(diff( logne)), 0, sd = sqrt(dh/tau), log = TRUE) )
+		sum( dnorm( diff(diff( logne)), 0, sd = sqrt(dh2/tau), log = TRUE) )
 	}
 	
 	lterms <- function(logne)
@@ -254,7 +258,6 @@ mlskygrid <- function(tre
 			nco * ( log( ltt_terms ) - logne[ ne_bin ]  )
 		})
 		coterms[ is.na(coterms)] <- 0
-#~ browser()
 		coterms + sterms 
 	}
 	
@@ -287,14 +290,17 @@ mlskygrid <- function(tre
 	neub <- exp( logne + fsigma*1.96 )
 	ne_ci <- cbind( nelb, ne, neub )
 	
-	growthrate <-  c( diff ( ne  ) / (ne[-res] ) / dh , NA)
+	growthrate <-  c( diff ( ne  ) / (ne[-res] ) / dh[-res] , NA)
 	loglik = of ( fit$par ) - roughness_penalty ( fit$par )
+	
+	h2 <- c( sort( -tredat$h[ tredat$type == 'neswitch' ] ) , 0)
+	time <- h2  - diff( c(-max(tredat$h), h2) )/2
 	rv <- list( 
 		ne =  ne
 	  , ne_ci = ne_ci  
 	  , growthrate =  growthrate
 	  , tau = tau
-	  , time = sort( -tredat$h[ tredat$type == 'neswitch' ] )
+	  , time = time 
 	  , tredat = tredat
 	  , tre = tre	
 	  , sigma = fsigma 

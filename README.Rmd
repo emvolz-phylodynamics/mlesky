@@ -31,7 +31,7 @@ tree <- ape::read.tree(system.file('mrsa.nwk', package = 'mlesky'))
 
 # run mleksy with defaults
 (fit <- mlskygrid( tree ))
-plot ( fit )
+plot ( fit , logy = FALSE )
 
 ```
 
@@ -46,8 +46,9 @@ fit <- mlskygrid( tree
   , NeStartTimeBeforePresent = 20)
 )
 
-plot( fit )
+plot( fit , logy=FALSE)
 ```
+
 
 ## HIV example 
 
@@ -62,17 +63,47 @@ require(mlesky)
 # load the tree 
 tree <- ape::read.tree( system.file('sn02ag2.0.nwk', package='mlesky') )
 
-# mlesky with defaults (tau = 1, res = 25)
+# mlesky with default parameters
 (fit <- mlskygrid( tree ))
-plot( fit )
+plot( fit, logy=FALSE)
 ```
 
-Now we use cross-validation to find the smoothing parameter and increase the time resolution: 
+Now we use cross-validation to find the smoothing parameter: 
 
 ```{r} 
-( fit <- mlskygrid( tree , tau = NULL, tau_lower = .1, tau_upper = 20 , ncpu = 6, res = 100) )
+( fit <- mlskygrid( tree , tau = NULL, tau_lower = .1, tau_upper = 20 , ncpu = 6) )
 
-plot(fit) 
+plot(fit, logy=FALSE) 
 ```
 
-Cross-validation indicates a higher smoothing parameter is optimal. 
+
+
+## Constant Ne(t)
+
+Skyline, skyride and skygrid models have a tendency to erroneously identify exponential growth in situations where the size is constant. 
+We can ameliorate that error by selecting a smaller time-axis resolution and adapting the Ne time axis to periods where the phylogeny contains a lot of information (default parameter `adapt_time_axis=TRUE`).
+This shows the use of a function to optimize the `res` parameter (number of Ne change points) using AIC
+
+Simulate the tree with constant Ne: 
+```{r}
+library(ape)
+set.seed(0)
+tree=rcoal(100)
+tree$edge.length=tree$edge.length*10
+plot(tree, show.tip.label = F)
+axisPhylo(backward = T)
+mtext("Years since most recent sample", side=1, line=3)
+```
+
+Find the best `res`:
+```{r}
+(resx = optim_res_aic( tree , ncpu = 8))
+```
+Note that this tests multiple `res` values and can quickened using multi-core processing. The `ncpu` parameter should be chosen for your system. 
+
+Estimate Ne(t):
+```{r}
+(fit <- mlskygrid( tree, res = resx))
+
+plot( fit , logy=FALSE)
+```

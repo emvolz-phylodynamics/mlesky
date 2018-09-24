@@ -3,3 +3,4 @@
 S3method(plot,mlskygrid)
 S3method(print,mlskygrid)
 export(mlskygrid)
+export(optim_res_aic)

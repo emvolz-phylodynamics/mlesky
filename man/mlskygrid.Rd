@@ -6,12 +6,13 @@
 \usage{
 mlskygrid(tre, res = 25, tau = 1, tau_lower = NULL,
   tau_upper = NULL, tau_tol = 0.001, ncross = 5, ncpu = 1,
-  quiet = FALSE, NeStartTimeBeforePresent = Inf, ...)
+  quiet = FALSE, NeStartTimeBeforePresent = Inf, ne0 = NULL,
+  adapt_time_axis = TRUE)
 }
 \arguments{
 \item{tre}{A dated phylogeny in ape::phylo format (see documentation for ape)}
 
-\item{res}{Length of time axis over which to estimate Ne(t) (integer)}
+\item{res}{Length of time axis over which to estimate Ne(t) (integer). If NULL, will search for a good value (see *optim_res_aic*)}
 
 \item{tau}{Precision parameter. Larger values generate smoother trajectories of Ne(t). If NULL, will optimize using cross-validation.}
 
@@ -28,6 +29,10 @@ mlskygrid(tre, res = 25, tau = 1, tau_lower = NULL,
 \item{quiet}{Provide verbose output from optimizer?}
 
 \item{NeStartTimeBeforePresent}{If <Inf, will only estimate Ne(t) between the most recent sample and this time before the most recent sample}
+
+\item{ne0}{Vector of length *res* giving starting conditions of Ne(t) for optimization}
+
+\item{adapt_time_axis}{If TRUE will choose Ne(t) change points in periods with high frequency of phylogenetic branching}
 }
 \value{
 A fitted model including effective size through time

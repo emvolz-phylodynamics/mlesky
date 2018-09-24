@@ -7,7 +7,7 @@
 \method{print}{mlskygrid}(fit)
 }
 \arguments{
-\item{Fitted}{mleskygrid object}
+\item{fit}{Fitted mleskygrid object}
 }
 \description{
 Print fitted mleskygrid
