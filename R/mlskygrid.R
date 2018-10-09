@@ -245,7 +245,9 @@ mlskygrid <- function(tre
 	
 	
 	roughness_penalty <- function(logne){
-		sum( dnorm( diff(diff( logne)), 0, sd = sqrt(dh2/tau), log = TRUE) )
+		rp = dnorm( diff(diff( logne)), 0, sd = sqrt(dh2/tau), log = TRUE)
+		rp[is.na(rp)] <- 0
+		sum( rp )
 	}
 	
 	lterms <- function(logne)
@@ -306,6 +308,7 @@ mlskygrid <- function(tre
 	  , sigma = fsigma 
 	  , optim = fit 
 	  , loglik = loglik
+	  , loglik_tredat = lterms(fit$par ) 
 	  , rp = roughness_penalty( fit$par )
 	)
 	
