@@ -30,12 +30,11 @@ x add covars for
 	u_inhs <- unique( inhs )
 	nnode <- sum( inhs  <= maxHeight)
 	
-	ne_haxis <- seq( maxHeight/res ,maxHeight, le = res )
+	ne_haxis <- seq( maxHeight/res ,maxHeight*(1-1/res), le = res-1 )
 	if (adapt_time_axis){
 		ne_haxis <- approx(  seq(0,1,length.out=nnode), inhs[inhs <= maxHeight], xout = seq(1/res, 1-1/res, length.out = res-1 ) )$y
 	}
 	dh_ne <- diff( c(0, ne_haxis, maxHeight ) )
-	
 	
 	#< h , event, ltt(descending), intervallength, nco, likterm, ne_bin >
 	tredat <- data.frame( h= c( u_shs, u_inhs, ne_haxis) 
@@ -186,7 +185,7 @@ optim_res_aic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ..
 # tree <- read.tree( system.file( package='mlskygrid', 'mrsa.nwk' , mustWork=TRUE) ) 
 # print( (fit <- mlskygrid( tree, tau = 10, NeStartTimeBeforePresent = 15) ))
 # plot( fit , logy = FALSE)
-mlskygrid <- function(tre
+mlsky = mlskygrid <- function(tre
   , res = 25 
   , tau = 1
   , tau_lower = NULL 
@@ -206,7 +205,7 @@ mlskygrid <- function(tre
 	if ( res < 3) 
 	  stop('The minimum allowable *res* value is 3.')
 	
-	tredat <- .tre2df( tre = tre, res = res , maxHeight= NeStartTimeBeforePresent )
+	tredat <- .tre2df( tre = tre, res = res , maxHeight= NeStartTimeBeforePresent, adapt_time_axis = adapt_time_axis )
 	if ( is.null( tau  ) ) {
 		if ( is.null(tau_lower) | is.null(tau_upper))
 		 stop('If *tau* is not specified, boundaries *tau_lower* and *tau_upper* must be specified.')
@@ -245,7 +244,8 @@ mlskygrid <- function(tre
 	
 	
 	roughness_penalty <- function(logne){
-		sum( dnorm( diff(diff( logne)), 0, sd = sqrt(dh2/tau), log = TRUE) )
+		rp =  dnorm( diff(diff( logne)), 0, sd = sqrt(dh2/tau), log = TRUE)
+		sum( na.omit(rp) )
 	}
 	
 	lterms <- function(logne)
@@ -308,7 +308,6 @@ mlskygrid <- function(tre
 	  , loglik = loglik
 	  , rp = roughness_penalty( fit$par )
 	)
-	
 	class(rv) <- 'mlskygrid'
 	rv
 }
