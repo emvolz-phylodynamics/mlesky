@@ -4,8 +4,17 @@
 \alias{.mlskygrid_oos}
 \title{Objective function for cross validation; computes out-sample-iog likelihood and takes mean of all crosses}
 \usage{
-.mlskygrid_oos(tau, tredat, ne0, res = 50, maxHeight = Inf,
-  quiet = FALSE, control = NULL, ncross = 5, ncpu = 1)
+.mlskygrid_oos(
+  tau,
+  tredat,
+  ne0,
+  res = 50,
+  maxHeight = Inf,
+  quiet = FALSE,
+  control = NULL,
+  ncross = 5,
+  ncpu = 1
+)
 }
 \description{
 Objective function for cross validation; computes out-sample-iog likelihood and takes mean of all crosses

@@ -4,12 +4,26 @@
 \alias{mlsky}
 \title{Maximum likelihood non-parametric estimation of effective population size through time}
 \usage{
-mlsky(tre, res = 25, tau = 1, tau_lower = NULL, tau_upper = NULL,
-  tau_tol = 0.001, ncross = 5, ncpu = 1, quiet = FALSE,
-  NeStartTimeBeforePresent = Inf, ne0 = NULL, adapt_time_axis = TRUE)
+mlsky(
+  tre,
+  sampleTimes = NULL,
+  res = 25,
+  tau = 1,
+  tau_lower = NULL,
+  tau_upper = NULL,
+  tau_tol = 0.001,
+  ncross = 5,
+  ncpu = 1,
+  quiet = TRUE,
+  NeStartTimeBeforePresent = Inf,
+  ne0 = NULL,
+  adapt_time_axis = TRUE
+)
 }
 \arguments{
-\item{tre}{A dated phylogeny in ape::phylo format (see documentation for ape)}
+\item{tre}{A dated phylogeny in ape::phylo or treedater format (see documentation for ape). This can also be a multiPhylo or list of trees, in which case each is treated as a clade sampled from within the same population. In this case the sampleTimes vector should be supplied so that clades can be aligned in time.}
+
+\item{sampleTimes}{An optional named vector of sample times for each taxon. Names should correspond to tip labels in trees. This is required if providing a list of trees.}
 
 \item{res}{Length of time axis over which to estimate Ne(t) (integer). If NULL, will search for a good value (see *optim_res_aic*)}
 

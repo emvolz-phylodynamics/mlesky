@@ -4,8 +4,7 @@
 \alias{plot.mlskygrid}
 \title{Plot mleskygrid}
 \usage{
-\method{plot}{mlskygrid}(fit, growth = FALSE, ggplot = FALSE,
-  logy = TRUE, ...)
+\method{plot}{mlskygrid}(fit, growth = FALSE, ggplot = FALSE, logy = TRUE, ...)
 }
 \arguments{
 \item{fit}{A fitted object}

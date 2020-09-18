@@ -14,18 +14,45 @@ x add covars for
 
 
 # derive timeseries of coalescent and ltt along appropriate time axis 
-.tre2df <- function( tre, res, maxHeight = Inf, minLTT = 1, adapt_time_axis = TRUE ){
-	n <- ape::Ntip( tre )
+.tre2df <- function( apephylo, tre, res, maxHeight = Inf, minLTT = 1, adapt_time_axis = TRUE, sampleTimes = NULL ){
+	n <- ape::Ntip( apephylo )
 	if (is.null( minLTT)) 
 	  minLTT <- floor( n / 5 ) 
 	
-	D <- ape::node.depth.edgelength( tre )
-	rh <- max( D[1:n] )
-	sts <- D[1:n]
-	maxHeight <- min( rh, maxHeight )
 	
-	shs <- rh - sts 
-	inhs <- sort( rh - D[ (n+1):(n + tre$Nnode) ] )
+	if ( inherits( tre, c('multiPhylo','list') ) ){
+		phys <- lapply( tre, function(tr) {class(tr) <- 'phylo'; tr } )
+		stopifnot( !is.null( sampleTimes ))
+		rts <- sapply( phys, function( phy ) {
+			mdepth <- max( node.depth.edgelength( phy )  ) 
+			mst <- max( sampleTimes [ phy$tip.label  ] )
+			mst - mdepth  
+		})
+		mst = max( sampleTimes )
+		sts <- sampleTimes - min( rts )
+		rhs = mst - rts 
+		rh = max( rhs ) 
+		maxHeight <- min( rh, maxHeight )
+		shs = rh - sts 
+		inhs_list <- lapply( 1:length(phys), function(k){
+			phy <- phys[[k]] 
+			rh = rhs[k] 
+			ndel <- ape::node.depth.edgelength( phy )
+			sort( rh - ndel[ (Ntip(phy)+1):(Ntip(phy) + phy$Nnode) ] )
+		})
+		inhs <- sort( do.call( c, inhs_list ) )
+	}else{
+		stopifnot( inherits (tre, c('phylo','treedater') ))
+		D <- ape::node.depth.edgelength( apephylo )
+		rh <- max( D[1:n] )
+		rhs = rh # for compatability with multitree version 
+		sts <- D[1:n]
+		maxHeight <- min( rh, maxHeight )
+		
+		shs <- rh - sts 
+		inhs <- sort( rh - D[ (n+1):(n + apephylo$Nnode) ] )
+	}
+	
 	u_shs <- unique( shs ) 
 	u_inhs <- unique( inhs )
 	nnode <- sum( inhs  <= maxHeight)
@@ -47,7 +74,7 @@ x add covars for
 	
 	tredat$ne_bin <- sapply( tredat$h, function(x) sum( ne_haxis  < x ) + 1)
 	
-	ltt.h <- function(h) sum( shs < h ) - sum( inhs < h )
+	ltt.h <- function(h) max(1, sum( shs < h ) - sum( inhs < h ) - sum( rhs < h ) )
 	tredat$ltt <- sapply( tredat$h, ltt.h )
 	
 	tredat$nco <- 0
@@ -88,7 +115,7 @@ x add covars for
 #' @param ... Remaining paramters are passed to mlskygrid 
 #' @export 
 optim_res_aic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ... )
-{
+{ 
 	res2aic <- function(r){
 		ll1 <- mlskygrid( tree, res = r, ncpu =ncpu,  ...)$loglik
 		 2 * r - 2 * ll1
@@ -100,6 +127,7 @@ optim_res_aic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ..
 
 
 #' Objective function for cross validation; computes out-sample-iog likelihood and takes mean of all crosses 
+#' @export
 .mlskygrid_oos <- function( tau 
   , tredat
   , ne0 
@@ -161,12 +189,35 @@ optim_res_aic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ..
 }
 
 
+.bind_tres <- function(tres, sts){
+	phys <- lapply( tres, function(tr) {class(tr) <- 'phylo'; tr } )
+	rts <- sapply( phys, function( phy ) {
+		mdepth <- max( node.depth.edgelength( phy )  ) 
+		mst <- max( sts [ phy$tip.label  ] )
+		mst - mdepth  
+	})
+	minrt <- min( rts ) 
+	maxrt <- max( rts ) 
+	rels <- rts - minrt + 1e-3 
+	phys <- lapply( 1:length(phys), function(k) {
+		phy <- phys[[k]]
+		phy$root.edge <- rels[k]; phy 
+	})
+	.phy <- phys[[1]]
+	for ( k in 2:length( phys )){
+		.phy <- bind.tree( .phy , phys[[k]] )
+	}
+	multi2di( .phy )
+}
+
+
 
 #' Maximum likelihood non-parametric estimation of effective population size through time
 #'
 #' 
 #'
-#' @param tre A dated phylogeny in ape::phylo format (see documentation for ape)
+#' @param tre A dated phylogeny in ape::phylo or treedater format (see documentation for ape). This can also be a multiPhylo or list of trees, in which case each is treated as a clade sampled from within the same population. In this case the sampleTimes vector should be supplied so that clades can be aligned in time. 
+#' @param sampleTimes An optional named vector of sample times for each taxon. Names should correspond to tip labels in trees. This is required if providing a list of trees. 
 #' @param res Length of time axis over which to estimate Ne(t) (integer). If NULL, will search for a good value (see *optim_res_aic*)
 #' @param tau Precision parameter. Larger values generate smoother trajectories of Ne(t). If NULL, will optimize using cross-validation.
 #' @param tau_lower Lower bound for precision parameter if estimating
@@ -186,6 +237,7 @@ optim_res_aic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ..
 # print( (fit <- mlskygrid( tree, tau = 10, NeStartTimeBeforePresent = 15) ))
 # plot( fit , logy = FALSE)
 mlsky = mlskygrid <- function(tre
+  , sampleTimes = NULL
   , res = 25 
   , tau = 1
   , tau_lower = NULL 
@@ -193,26 +245,40 @@ mlsky = mlskygrid <- function(tre
   , tau_tol = 1e-3 
   , ncross = 5
   , ncpu = 1
-  , quiet = FALSE
+  , quiet = TRUE
   , NeStartTimeBeforePresent = Inf 
-  #, minLTT = 1 
   , ne0 = NULL
   , adapt_time_axis = TRUE 
 ){
+	apephylo <- tre
+	if ( inherits( tre, c('multiPhylo','list') ) ){
+		apephylo <- .bind_tres( tre , sampleTimes )
+		class(apephylo) <- 'phylo'
+		stopifnot( !is.null( sampleTimes ))
+	}else{
+		stopifnot( inherits (tre, c('phylo','treedater') ))
+	}
+	class( apephylo ) <- 'phylo'
+	
+	if (!is.null( sampleTimes )){
+		stopifnot( is.numeric( sampleTimes ))
+		sampleTimes <- sampleTimes[apephylo$tip]
+	}
+	
 	if ( is.null( res )){
-		res = optim_res_aic( tre, tau = tau, tau_lower = tau_lower, tau_upper = tau_upper, tau_tol = tau_tol, ncross = ncross, ncpu = ncpu , quiet = quiet, NeStartTimeBeforePresent = NeStartTimeBeforePresent, ne0 = ne0, adapt_time_axis = adapt_time_axis)
+		res = optim_res_aic( tre, tau = tau, tau_lower = tau_lower, tau_upper = tau_upper, tau_tol = tau_tol, ncross = ncross, ncpu = ncpu , quiet = quiet, NeStartTimeBeforePresent = NeStartTimeBeforePresent, ne0 = ne0, adapt_time_axis = adapt_time_axis, sampleTimes=sampleTimes )
 	}
 	if ( res < 3) 
 	  stop('The minimum allowable *res* value is 3.')
 	
-	tredat <- .tre2df( tre = tre, res = res , maxHeight= NeStartTimeBeforePresent, adapt_time_axis = adapt_time_axis )
+	tredat <- .tre2df(apephylo = apephylo,  tre = tre, res = res , maxHeight= NeStartTimeBeforePresent, adapt_time_axis = adapt_time_axis , sampleTimes = sampleTimes )
 	if ( is.null( tau  ) ) {
 		if ( is.null(tau_lower) | is.null(tau_upper))
 		 stop('If *tau* is not specified, boundaries *tau_lower* and *tau_upper* must be specified.')
 	}
 	
 	if ( is.null( ne0 )){
-		coint <- ape::coalescent.intervals( tre )
+		coint <- ape::coalescent.intervals( apephylo )
 		with( coint , {
 			abs(interval.length) * ( lineages * (lineages-1) / 2) 
 		}) -> .ne
@@ -242,10 +308,12 @@ mlsky = mlskygrid <- function(tre
 	}
 	#/estimate tau 
 	
+	rp_terms <- function(logne){
+		dnorm( diff(diff( logne)), 0, sd = sqrt(dh2/tau), log = TRUE)
+	}
 	
 	roughness_penalty <- function(logne){
-		rp =  dnorm( diff(diff( logne)), 0, sd = sqrt(dh2/tau), log = TRUE)
-		sum( na.omit(rp) )
+		sum( na.omit(rp_terms(logne)) )
 	}
 	
 	lterms <- function(logne)
@@ -293,8 +361,11 @@ mlsky = mlskygrid <- function(tre
 	growthrate <-  c( diff ( ne  ) / (ne[-res] ) / dh[-res] , NA)
 	loglik = of ( fit$par ) - roughness_penalty ( fit$par )
 	
-	h2 <- c( sort( -tredat$h[ tredat$type == 'neswitch' ] ) , 0)
-	time <- h2  - diff( c(-max(tredat$h), h2) )/2
+	mst = ifelse( is.null(sampleTimes), 0, max(sampleTimes) )
+	
+	h2 <- -c( sort( -tredat$h[ tredat$type == 'neswitch' ] ) , 0)
+	time <- h2  - diff( c(max(tredat$h), h2) )/2
+	time <- mst - time 
 	rv <- list( 
 		ne =  ne
 	  , ne_ci = ne_ci  
@@ -307,6 +378,9 @@ mlsky = mlskygrid <- function(tre
 	  , optim = fit 
 	  , loglik = loglik
 	  , rp = roughness_penalty( fit$par )
+	  , rpterms = rp_terms( fit$par ) 
+	  , lterms = lterms( fit$par )
+	  , sampleTimes = sampleTimes
 	)
 	class(rv) <- 'mlskygrid'
 	rv
@@ -382,7 +456,11 @@ print.mlskygrid <- function( fit ){
 	stopifnot(inherits(fit, "mlskygrid"))
 	d <- as.data.frame( fit$ne_ci )
 	d <- cbind( fit$time, d )
-	colnames( d ) <- c( 'Time before most recent sample', '2.5%', 'MLE', '97.5%' )
+	if ( is.null ( fit$sampleTimes )){
+		colnames( d ) <- c( 'Time before most recent sample', '2.5%', 'MLE', '97.5%' )
+	} else {
+		colnames( d ) <- c( 'Time', '2.5%', 'MLE', '97.5%' )
+	}
 	cat(paste( 'mlskygrid fit
 	Smoothing parameter tau =', fit$tau, '\n\n'))
 	
