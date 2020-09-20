@@ -188,7 +188,6 @@ optim_res_aic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ..
 	sum( oos_perfs )
 }
 
-
 .bind_tres <- function(tres, sts){
 	phys <- lapply( tres, function(tr) {class(tr) <- 'phylo'; tr } )
 	rts <- sapply( phys, function( phy ) {
@@ -203,13 +202,14 @@ optim_res_aic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ..
 		phy <- phys[[k]]
 		phy$root.edge <- rels[k]; phy 
 	})
+	
 	.phy <- phys[[1]]
 	for ( k in 2:length( phys )){
-		.phy <- bind.tree( .phy , phys[[k]] )
+		#.phy <- bind.tree( .phy , phys[[k]] )
+		.phy <- .phy + phys[[k]] 
 	}
 	multi2di( .phy )
 }
-
 
 
 #' Maximum likelihood non-parametric estimation of effective population size through time
