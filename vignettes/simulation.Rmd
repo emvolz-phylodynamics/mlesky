@@ -10,6 +10,12 @@ vignette: >
   %\usepackage[utf8]{inputenc}
 ---
 
+# Simulation
+
+Let's consider that the effective population size was of size 10 except between 2000 and 2010 
+when it was of size 1 (bottleneck model). Ten samples per year are taken at uniform timepoints 
+between 1990 and 2020. We can simulate such a phylogeny using:
+
 ```{r}
 library(ape)
 library(mlesky)
@@ -20,7 +26,9 @@ t=simCoal(sampleDates,alphaFun)
 plotBoth(t,alphaFun)
 ```
 
+# Inference
 
+We now infer the past population size given the phylogeny.
 
 ```{r}
 res=optim_res_aic(t,ncpu = 8)
@@ -28,8 +36,3 @@ fit=mlskygrid(t,res=res)
 plot(fit)
 ```
 
-```{r}
-res=optim_res_bic(t,ncpu = 8)
-fit=mlskygrid(t,res=res)
-plot(fit)
-```
