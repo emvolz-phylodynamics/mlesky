@@ -79,3 +79,20 @@ simCoal = function(dates=1990:2010,alphaFun=function(x){return(10)},alphaMin=NA)
   class(t)='phylo'
   return(t)
 }
+
+#' Plot a dated phylogeny and alpha function
+#' @param tree Dated phylogeny
+#' @param alphaFun Population size function Ne(t)
+#' @return Figure
+#' @export
+plotBoth = function(tree,alphaFun) {
+  par(mfrow=c(2,1))
+  plot(tree,show.tip.label = F)
+  axisPhylo(1,backward = F)
+  from=tree$root.time
+  to=from+max(dist.nodes(tree)[Ntip(tree)+1,])
+  xs=seq(from=from,to=to,length.out=100)
+  ys=xs
+  for (i in 1:length(ys)) ys[i]=alphaFun(ys[i])
+  plot(xs,ys,type='l',xlab='',ylab='Population size')
+}

@@ -15,6 +15,12 @@ library(ape)
 library(mlesky)
 alphaFun=function(x){if (x<2000) 0.1 else 10}
 t=simCoal(1990:2020,alphaFun)
+plotBoth(t,alphaFun)
+```
+
+
+
+```{r}
 fit=mlsky(t)
 plot(fit)
 ```
