@@ -124,6 +124,24 @@ optim_res_aic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ..
 	res[ which.min( aics )]
 }
 
+#' Optimize the skygrid time axis resolution using BIC criterion
+#' 
+#' @param tree A dated phylogeny in ape::phylo format
+#' @param res A vector of time axis resolution parameters to test 
+#' @param ncpu Integer number of cores to use with parallel processing 
+#' @param ... Remaining parameters are passed to mlskygrid 
+#' @export 
+optim_res_bic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ... )
+{ 
+  res2bic <- function(r){
+    ll1 <- mlskygrid( tree, res = r, ncpu =ncpu,  ...)$loglik
+    r * log(tree$Nnode) - 2 * ll1
+  }
+  bics <- unlist( parallel::mclapply( res,  res2bic, mc.cores = ncpu ) )
+  res[ which.min( bics )]
+}
+
+
 #' Objective function for cross validation; computes out-sample-iog likelihood and takes mean of all crosses 
 #' @export
 .mlskygrid_oos <- function( tau 
@@ -331,7 +349,7 @@ mlskygrid <- function(tre
 		sum( lterms( logne )) + roughness_penalty( logne )
 	}
 	
-	cat( ' Estimating Ne(t)...\n')
+	#cat( ' Estimating Ne(t)...\n')
 	optim( par = log(ne), fn = of 
 	  , method = 'BFGS'
 	  , control = list( trace = ifelse(quiet, 0, 1), fnscale  = -1 )

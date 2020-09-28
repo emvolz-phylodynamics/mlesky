@@ -14,8 +14,9 @@ vignette: >
 library(ape)
 library(mlesky)
 set.seed(0)
-alphaFun=function(x){if (x<2000 || x>2010) 10 else 0.1}
-t=simCoal(1990:2020,alphaFun)
+alphaFun=function(x){if (x<2000 || x>2010) 10 else 1}
+sampleDates=seq(1990,2020,0.1)
+t=simCoal(sampleDates,alphaFun)
 plotBoth(t,alphaFun)
 ```
 
@@ -23,6 +24,12 @@ plotBoth(t,alphaFun)
 
 ```{r}
 res=optim_res_aic(t,ncpu = 8)
+fit=mlskygrid(t,res=res)
+plot(fit)
+```
+
+```{r}
+res=optim_res_bic(t,ncpu = 8)
 fit=mlskygrid(t,res=res)
 plot(fit)
 ```
