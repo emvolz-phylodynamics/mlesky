@@ -422,17 +422,18 @@ mlskygrid <- function(tre
 {
   gr<-NULL
 	stopifnot(inherits(fit, "mlskygrid"))
+	if (!is.null(fit$tre$root.time)) dateLastSample=fit$tre$root.time+max(dist.nodes(fit$tre)[Ntip(fit$tre)+1,]) else dateLastSample=0
 	if ( 'ggplot2' %in% installed.packages()  & ggplot)
 	{
-		pldf <- data.frame( t = fit$time, gr = fit$growth)
+		pldf <- data.frame( t = dateLastSample+fit$time, gr = fit$growth)
 		pl <- ggplot2::ggplot( pldf, ggplot2::aes( x = t, y = gr), ... ) + ggplot2::geom_line() + ggplot2::ylab('Growth rate') + ggplot2::xlab('Time before most recent sample')
 		if (logy) pl <- pl + ggplot2::scale_y_log10() 
 		return(pl)
 	} else{
 		if (logy)
-			plot( fit$time, fit$growth, lwd =2, col = 'black', type = 'l', log='y', xlab='Time', ylab='Growth rate',...)
+			plot( dateLastSample+fit$time, fit$growth, lwd =2, col = 'black', type = 'l', log='y', xlab='Time', ylab='Growth rate',...)
 		else
-			plot( fit$time, fit$growth, lwd =2, col = 'black', type = 'l', xlab='Time', ylab='Growth rate', ...)
+			plot( dateLastSample+fit$time, fit$growth, lwd =2, col = 'black', type = 'l', xlab='Time', ylab='Growth rate', ...)
 		
 		invisible(fit)
 	}
