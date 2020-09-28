@@ -91,7 +91,7 @@ plotBoth = function(tree,alphaFun) {
   par(mfrow=c(2,1),mar=c(4,4,1,4))
   plot(tree,show.tip.label = F)
   axisPhylo(1,backward = F)
-  from=tree$root.time
+  if (!is.null(tree$root.time)) from=tree$root.time else from=-max(dist.nodes(tree)[Ntip(tree)+1,])
   to=from+max(dist.nodes(tree)[Ntip(tree)+1,])
   xs=seq(from=from,to=to,length.out=100)
   ys=xs

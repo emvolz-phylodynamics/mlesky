@@ -391,20 +391,21 @@ mlskygrid <- function(tre
 .neplot <- function( fit, ggplot=TRUE, logy = TRUE , ... )
 {
 	stopifnot(inherits(fit, "mlskygrid"))
+  if (!is.null(fit$tre$root.time)) dateLastSample=fit$tre$root.time+max(dist.nodes(fit$tre)[Ntip(fit$tre)+1,]) else dateLastSample=0
 	ne <- fit$ne_ci
 	if ( 'ggplot2' %in% installed.packages()  & ggplot)
 	{
-		pldf <- data.frame( t = fit$time, nelb = ne[,1], nemed = ne[,2], neub = ne[,3] )
+		pldf <- data.frame( t = dateLastSample+fit$time, nelb = ne[,1], nemed = ne[,2], neub = ne[,3] )
 		pl <- ggplot2::ggplot( pldf, ggplot2::aes( x = t, y = nemed), ... ) + ggplot2::geom_line() + ggplot2::geom_ribbon( ggplot2::aes( ymin = nelb, ymax = neub), fill = 'blue', alpha = .2) + ggplot2::ylab('Effective population size') + ggplot2::xlab('Time before most recent sample')
 		if (logy) pl <- pl + ggplot2::scale_y_log10()
 		return(pl)
 	} else{
 		if (logy)
-			plot( fit$time, ne[,2], ylim=range(ne[,1:3],na.rm=T),lwd =2, col = 'black', type = 'l', log='y',xlab='Time', ylab='Effective population size', ...)
+			plot( dateLastSample+fit$time, ne[,2], ylim=range(ne[,1:3],na.rm=T),lwd =2, col = 'black', type = 'l', log='y',xlab='Time', ylab='Effective population size', ...)
 		else
-			plot( fit$time, ne[,2], ylim=range(ne[,1:3],na.rm=T),lwd =2, col = 'black', type = 'l',xlab='Time', ylab='Effective population size', ...)
-		lines( fit$time, ne[,1] , lty=3)
-		lines( fit$time, ne[,3] , lty=3)
+			plot( dateLastSample+fit$time, ne[,2], ylim=range(ne[,1:3],na.rm=T),lwd =2, col = 'black', type = 'l',xlab='Time', ylab='Effective population size', ...)
+		lines( dateLastSample+fit$time, ne[,1] , lty=3)
+		lines( dateLastSample+fit$time, ne[,3] , lty=3)
 		invisible(fit)
 	}
 }
