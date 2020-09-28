@@ -26,13 +26,24 @@ t=simCoal(sampleDates,alphaFun)
 plotBoth(t,alphaFun)
 ```
 
-# Inference
+# Inference using AIC
 
-We now infer the past population size given the phylogeny.
+We now infer the past population size given the phylogeny, with res selected using the AIC criterion:
 
 ```{r}
 res=optim_res_aic(t,ncpu = 8)
+print(res)
 fit=mlskygrid(t,res=res)
 plot(fit)
 ```
 
+# Inference using BIC
+
+We now infer the past population size given the phylogeny, with res selected using the BIC criterion:
+
+```{r}
+res=optim_res_bic(t,ncpu = 8)
+print(res)
+fit=mlskygrid(t,res=res)
+plot(fit)
+```
