@@ -2,13 +2,15 @@
 % Please edit documentation in R/mlesky.R
 \name{print.mlskygrid}
 \alias{print.mlskygrid}
-\title{Print fitted mleskygrid}
+\title{Print fitted mlskygrid}
 \usage{
-\method{print}{mlskygrid}(fit)
+\method{print}{mlskygrid}(x, ...)
 }
 \arguments{
-\item{fit}{Fitted mleskygrid object}
+\item{x}{Fitted mlskygrid object}
+
+\item{...}{Additional parameters are passed on}
 }
 \description{
-Print fitted mleskygrid
+Print fitted mlskygrid
 }

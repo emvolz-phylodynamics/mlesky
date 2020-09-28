@@ -142,18 +142,7 @@ optim_res_bic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ..
 }
 
 
-#' Objective function for cross validation; computes out-sample-iog likelihood and takes mean of all crosses 
-#' @export
-.mlskygrid_oos <- function( tau 
-  , tredat
-  , ne0 
-  , res = 50 
-  , maxHeight = Inf 
-  , quiet = FALSE
-  , control = NULL
-  , ncross = 5
-  , ncpu = 1
-){
+.mlskygrid_oos <- function( tau, tredat, ne0, res = 50, maxHeight = Inf, quiet = FALSE, control = NULL, ncross = 5, ncpu = 1){
 	if ( ncross < 2 ) stop('*ncross* must be > 1')
 	
 	ne <- rlnorm( res , log( ne0 ), .2 ) # add some jitter
@@ -408,6 +397,7 @@ mlskygrid <- function(tre
 ##############
 .neplot <- function( fit, ggplot=TRUE, logy = TRUE , ... )
 {
+  nemed <- nelb <- neub <- NULL
 	stopifnot(inherits(fit, "mlskygrid"))
   if (!is.null(fit$tre$root.time)) dateLastSample=fit$tre$root.time+max(dist.nodes(fit$tre)[Ntip(fit$tre)+1,]) else dateLastSample=0
 	ne <- fit$ne_ci
@@ -430,6 +420,7 @@ mlskygrid <- function(tre
 
 .growthplot  <- function( fit , ggplot=TRUE, logy=FALSE, ...)
 {
+  gr<-NULL
 	stopifnot(inherits(fit, "mlskygrid"))
 	if ( 'ggplot2' %in% installed.packages()  & ggplot)
 	{
@@ -448,40 +439,41 @@ mlskygrid <- function(tre
 }
 
 
-#' Plot mleskygrid 
+#' Plot mlskygrid 
 #'
-#' @param fit A fitted object
+#' @param x A fitted object
 #' @param growth If TRUE will plot estimated growth rate instead of Ne(t) 
 #' @param logy  If TRUE, the plot is returned with logarithmic y-axis
 #' @param ggplot  If TRUE, returns a ggplot2 figure
 #' @param ... Additional parameters are passed to ggplot or the base plotting function
 #' @return Plotted object 
 #' @export
-plot.mlskygrid <- function(fit, growth=FALSE, ggplot=FALSE, logy=TRUE, ... ){
+plot.mlskygrid <- function(x, growth=FALSE, ggplot=FALSE, logy=TRUE, ... ){
 	if (growth) {
-	  return(.growthplot(fit, ggplot, logy, ... ))
+	  return(.growthplot(x, ggplot, logy, ... ))
 	} else{
-		return(.neplot(fit, ggplot, logy, ... ))
+		return(.neplot(x, ggplot, logy, ... ))
 	}
 }
 
-#' Print fitted mleskygrid 
+#' Print fitted mlskygrid 
 #'
-#' @param fit Fitted mleskygrid object 
+#' @param x Fitted mlskygrid object 
+#' @param ... Additional parameters are passed on
 #' @export 
-print.mlskygrid <- function( fit ){
-	stopifnot(inherits(fit, "mlskygrid"))
-	d <- as.data.frame( fit$ne_ci )
-	d <- cbind( fit$time, d )
-	if ( is.null ( fit$sampleTimes )){
+print.mlskygrid <- function( x,... ){
+	stopifnot(inherits(x, "mlskygrid"))
+	d <- as.data.frame( x$ne_ci )
+	d <- cbind( x$time, d )
+	if ( is.null ( x$sampleTimes )){
 		colnames( d ) <- c( 'Time before most recent sample', '2.5%', 'MLE', '97.5%' )
 	} else {
 		colnames( d ) <- c( 'Time', '2.5%', 'MLE', '97.5%' )
 	}
 	cat(paste( 'mlskygrid fit
-	Smoothing parameter tau =', fit$tau, '\n\n'))
+	Smoothing parameter tau =', x$tau, '\n\n'))
 	
 	cat( 'Estimated Ne(t): \n')
-	print ( d )
-	invisible( fit )
+	print ( d,... )
+	invisible( x )
 }
