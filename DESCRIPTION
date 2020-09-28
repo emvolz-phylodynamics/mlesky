@@ -10,4 +10,5 @@ License: MIT
 Depends: R(>= 3.4.0)
 Suggests: ggplot2(>= 2.0.0)
 Imports: ape(>= 5.1)
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
+Encoding: UTF-8

@@ -1,0 +1,20 @@
+---
+title: "Application to simulated data"
+author: "Xavier Didelot"
+date: '`r Sys.Date()`'
+output:
+  pdf_document: default
+vignette: >
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteIndexEntry{Application to simulated data}
+  %\usepackage[utf8]{inputenc}
+---
+
+```{r}
+library(ape)
+library(mlesky)
+alphaFun=function(x){if (x<2000) 0.1 else 10}
+t=simCoal(1990:2020,alphaFun)
+fit=mlsky(t)
+plot(fit)
+```

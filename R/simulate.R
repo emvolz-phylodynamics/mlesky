@@ -4,7 +4,7 @@
 #' @param alphaMin Minimum value of alphaFun
 #' @return A simulated dated phylogeny
 #' @export
-simulate = function(dates=1990:2010,alphaFun=function(x){return(10)},alphaMin=NA) {
+simCoal = function(dates=1990:2010,alphaFun=function(x){return(10)},alphaMin=NA) {
   if (is.na(alphaMin)) alphaMin=optimize(alphaFun,c(-1e5,max(dates)))$objective
   s <- sort(dates,decreasing=TRUE,index.return = TRUE)
   tim <- s$x
