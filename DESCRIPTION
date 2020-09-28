@@ -6,9 +6,10 @@ Date: 2020-09-18
 Author: Erik Volz
 Maintainer: Erik Volz <erik.volz@gmail.com>
 Description: Maximum likelihood estimation of effective population size through time, growth rates, and phylodynamic regressions with non-genetic covariate time series. A likelihood-based cross-validation technique is used to choose smoothing parameters. 
-License: MIT
+License: MIT + file LICENSE
 Depends: R(>= 3.4.0)
-Suggests: ggplot2(>= 2.0.0)
-Imports: ape(>= 5.1)
+Suggests: ggplot2(>= 2.0.0), knitr
+Imports: ape(>= 5.1), stats, graphics, utils
+VignetteBuilder: knitr
 RoxygenNote: 7.1.1
 Encoding: UTF-8

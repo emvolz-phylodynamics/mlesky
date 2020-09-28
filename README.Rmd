@@ -1,3 +1,18 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/"
+)
+set.seed(0)
+```
+
 # mlesky : Maximum likelihood inference of effective population size through time using GMRF-skygrid approach
 
 This package is related to previous Bayesian implementations of the Bayesian skygrid model with the following notable differences: 
@@ -30,7 +45,7 @@ require(mlesky)
 tree <- ape::read.tree(system.file('mrsa.nwk', package = 'mlesky'))
 
 # run mleksy with defaults
-(fit <- mlskygrid( tree ))
+(fit <- mlsky( tree ))
 plot ( fit , logy = FALSE )
 
 ```
@@ -39,7 +54,7 @@ Note there's a lot of uncertainty >20 years in the past when there are very few 
 We also us cross-validation to optimize the smoothing parameter: 
 ```{r}
 (
-fit <- mlskygrid( tree
+fit <- mlsky( tree
   , tau = NULL, tau_lower = 1, tau_upper = 20
   , ncpu = 6
   , res = 50
@@ -64,14 +79,14 @@ require(mlesky)
 tree <- ape::read.tree( system.file('sn02ag2.0.nwk', package='mlesky') )
 
 # mlesky with default parameters
-(fit <- mlskygrid( tree ))
+(fit <- mlsky( tree ))
 plot( fit, logy=FALSE)
 ```
 
 Now we use cross-validation to find the smoothing parameter: 
 
 ```{r} 
-( fit <- mlskygrid( tree , tau = NULL, tau_lower = .1, tau_upper = 20 , ncpu = 6) )
+( fit <- mlsky( tree , tau = NULL, tau_lower = .1, tau_upper = 20 , ncpu = 6) )
 
 plot(fit, logy=FALSE) 
 ```
@@ -103,7 +118,7 @@ Note that this tests multiple `res` values and can quickened using multi-core pr
 
 Estimate Ne(t):
 ```{r}
-(fit <- mlskygrid( tree, res = resx))
+(fit <- mlsky( tree, res = resx))
 
 plot( fit , logy=FALSE)
 ```
