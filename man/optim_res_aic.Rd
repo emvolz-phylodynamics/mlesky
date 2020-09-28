@@ -13,7 +13,7 @@ optim_res_aic(tree, res = c(3, seq(10, 100, by = 10)), ncpu = 1, ...)
 
 \item{ncpu}{Integer number of cores to use with parallel processing}
 
-\item{...}{Remaining paramters are passed to mlskygrid}
+\item{...}{Remaining parameters are passed to mlskygrid}
 }
 \description{
 Optimize the skygrid time axis resolution using AIC criterion

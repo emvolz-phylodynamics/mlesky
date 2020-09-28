@@ -86,7 +86,9 @@ simCoal = function(dates=1990:2010,alphaFun=function(x){return(10)},alphaMin=NA)
 #' @return Figure
 #' @export
 plotBoth = function(tree,alphaFun) {
-  par(mfrow=c(2,1))
+  oldpar <- par(no.readonly = TRUE)
+  on.exit(par(oldpar))
+  par(mfrow=c(2,1),mar=c(4,4,1,4))
   plot(tree,show.tip.label = F)
   axisPhylo(1,backward = F)
   from=tree$root.time
@@ -94,5 +96,5 @@ plotBoth = function(tree,alphaFun) {
   xs=seq(from=from,to=to,length.out=100)
   ys=xs
   for (i in 1:length(ys)) ys[i]=alphaFun(ys[i])
-  plot(xs,ys,type='l',xlab='',ylab='Population size')
+  plot(xs,ys,type='l',xlab='',ylab='Population size', bty='l')
 }

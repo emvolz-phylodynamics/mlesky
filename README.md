@@ -38,7 +38,7 @@ require(mlesky)
 tree <- ape::read.tree(system.file('mrsa.nwk', package = 'mlesky'))
 
 # run mleksy with defaults
-(fit <- mlsky( tree ))
+(fit <- mlskygrid( tree ))
 #>  Estimating Ne(t)...
 #> mlskygrid fit
 #>  Smoothing parameter tau = 1 
@@ -83,7 +83,7 @@ optimize the smoothing parameter:
 
 ``` r
 (
-fit <- mlsky( tree
+fit <- mlskygrid( tree
   , tau = NULL, tau_lower = 1, tau_upper = 20
   , ncpu = 6
   , res = 50
@@ -169,7 +169,7 @@ require(mlesky)
 tree <- ape::read.tree( system.file('sn02ag2.0.nwk', package='mlesky') )
 
 # mlesky with default parameters
-(fit <- mlsky( tree ))
+(fit <- mlskygrid( tree ))
 #>  Estimating Ne(t)...
 #> mlskygrid fit
 #>  Smoothing parameter tau = 1 
@@ -209,7 +209,7 @@ plot( fit, logy=FALSE)
 Now we use cross-validation to find the smoothing parameter:
 
 ``` r
-( fit <- mlsky( tree , tau = NULL, tau_lower = .1, tau_upper = 20 , ncpu = 6) )
+( fit <- mlskygrid( tree , tau = NULL, tau_lower = .1, tau_upper = 20 , ncpu = 6) )
 #> Precision parameter *tau* not provided. Computing now....
 #> Precision parameter tau =  4.68873851061673 
 #>  Estimating Ne(t)...
@@ -287,7 +287,7 @@ system.
 Estimate Ne(t):
 
 ``` r
-(fit <- mlsky( tree, res = resx))
+(fit <- mlskygrid( tree, res = resx))
 #>  Estimating Ne(t)...
 #> mlskygrid fit
 #>  Smoothing parameter tau = 1 

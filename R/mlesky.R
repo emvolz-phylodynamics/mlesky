@@ -45,7 +45,7 @@ x add covars for
 		stopifnot( inherits (tre, c('phylo','treedater') ))
 		D <- ape::node.depth.edgelength( apephylo )
 		rh <- max( D[1:n] )
-		rhs = rh # for compatability with multitree version 
+		rhs = rh # for compatibility with multitree version 
 		sts <- D[1:n]
 		maxHeight <- min( rh, maxHeight )
 		
@@ -112,7 +112,7 @@ x add covars for
 #' @param tree A dated phylogeny in ape::phylo format
 #' @param res A vector of time axis resolution parameters to test 
 #' @param ncpu Integer number of cores to use with parallel processing 
-#' @param ... Remaining paramters are passed to mlskygrid 
+#' @param ... Remaining parameters are passed to mlskygrid 
 #' @export 
 optim_res_aic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ... )
 { 
@@ -123,8 +123,6 @@ optim_res_aic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ..
 	aics <- unlist( parallel::mclapply( res,  res2aic, mc.cores = ncpu ) )
 	res[ which.min( aics )]
 }
-
-
 
 #' Objective function for cross validation; computes out-sample-iog likelihood and takes mean of all crosses 
 #' @export
@@ -232,11 +230,11 @@ optim_res_aic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ..
 #' @return A fitted model including effective size through time
 #' @export
 # @examples
-# library(mlskygrid)
+# library(mlesky)
 # tree <- read.tree( system.file( package='mlskygrid', 'mrsa.nwk' , mustWork=TRUE) ) 
 # print( (fit <- mlskygrid( tree, tau = 10, NeStartTimeBeforePresent = 15) ))
 # plot( fit , logy = FALSE)
-mlsky = mlskygrid <- function(tre
+mlskygrid <- function(tre
   , sampleTimes = NULL
   , res = 25 
   , tau = 1

@@ -13,7 +13,8 @@ vignette: >
 ```{r}
 library(ape)
 library(mlesky)
-alphaFun=function(x){if (x<2000) 0.1 else 10}
+set.seed(0)
+alphaFun=function(x){if (x<2000 || x>2010) 10 else 0.1}
 t=simCoal(1990:2020,alphaFun)
 plotBoth(t,alphaFun)
 ```
@@ -21,6 +22,7 @@ plotBoth(t,alphaFun)
 
 
 ```{r}
-fit=mlsky(t)
+res=optim_res_aic(t,ncpu = 8)
+fit=mlskygrid(t,res=res)
 plot(fit)
 ```
