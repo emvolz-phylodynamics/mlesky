@@ -36,34 +36,32 @@ devtools::install_github('emvolz-phylodynamics/mleksy')
 
 ## MRSA example 
 
-Here we reanalyze dated phylogenies from __Volz & Didelot, Systematic Biology 2018__. 
+Here we reanalyze the MRSA phylogeny from __Volz & Didelot, Systematic Biology 2018__. 
 
 ```{r}
 require(mlesky)
-
-# load the tree
-tree <- ape::read.tree(system.file('mrsa.nwk', package = 'mlesky'))
-
-# run mleksy with defaults
-(fit <- mlskygrid( tree ))
-plot ( fit , logy = FALSE )
+treeMRSA <- ape::read.tree(system.file('mrsa.nwk', package = 'mlesky'))
+treeMRSA$root.time=1967.306
+fit <- mlskygrid(treeMRSA)
+plot (fit, logy = FALSE)
 
 ```
-
-Note there's a lot of uncertainty >20 years in the past when there are very few lineages remaining in the tree. We can focus the analysis on the portion of the tree that is more informative using the `NeStartTimeBeforePresent` parameter. 
-We also us cross-validation to optimize the smoothing parameter: 
+The analysis above assumed the default smoothing parameter `tau=1`.
+We can use cross-validation to optimize this smoothing parameter: 
 ```{r}
-(
-fit <- mlskygrid( tree
-  , tau = NULL, tau_lower = 1, tau_upper = 20
-  , ncpu = 6
-  , res = 50
-  , NeStartTimeBeforePresent = 20)
-)
-
-plot( fit , logy=FALSE)
+fit <- mlskygrid(treeMRSA, tau = NULL, tau_lower = 1, tau_upper = 20, ncpu = 6)
+plot(fit,logy=FALSE)
 ```
 
+We can use AIC to optimise res and then use the cross-validation to optimise tau:
+```{r}
+res=optim_res_aic(treeMRSA,ncpu=6)
+print(res)
+fit <- mlskygrid(treeMRSA, tau = NULL, tau_lower = 1, tau_upper = 20, ncpu = 6,res=res)
+plot(fit,logy=FALSE)
+#fit <- mlskygrid(treeMRSA, tau = NULL, tau_lower = 1, tau_upper = 20, ncpu = 2,res=NULL)
+#optimise both at the same time???
+```
 
 ## HIV example 
 
@@ -74,20 +72,15 @@ Here is the `mlesky` analysis
 
 ```{r} 
 require(mlesky)
-
-# load the tree 
-tree <- ape::read.tree( system.file('sn02ag2.0.nwk', package='mlesky') )
-
-# mlesky with default parameters
-(fit <- mlskygrid( tree ))
+treeHIV <- ape::read.tree( system.file('sn02ag2.0.nwk', package='mlesky') )
+fit <- mlskygrid(treeHIV)
 plot( fit, logy=FALSE)
 ```
 
 Now we use cross-validation to find the smoothing parameter: 
 
 ```{r} 
-( fit <- mlskygrid( tree , tau = NULL, tau_lower = .1, tau_upper = 20 , ncpu = 6) )
-
+fit <- mlskygrid(treeHIV, tau = NULL, tau_lower = 0.1, tau_upper = 20 , ncpu = 6)
 plot(fit, logy=FALSE) 
 ```
 
@@ -104,21 +97,21 @@ Simulate the tree with constant Ne:
 library(ape)
 set.seed(0)
 tree=rcoal(100)
-tree$edge.length=tree$edge.length*10
+tree$edge.length=tree$edge.length*10#So that Ne(t)=10
 plot(tree, show.tip.label = F)
 axisPhylo(backward = T)
-mtext("Years since most recent sample", side=1, line=3)
+mtext("Years since sampling", side=1, line=3)
 ```
 
 Find the best `res`:
 ```{r}
-(resx = optim_res_aic( tree , ncpu = 8))
+resx = optim_res_aic( tree , ncpu = 8)
+print(resx)
 ```
 Note that this tests multiple `res` values and can quickened using multi-core processing. The `ncpu` parameter should be chosen for your system. 
 
 Estimate Ne(t):
 ```{r}
-(fit <- mlskygrid( tree, res = resx))
-
+fit <- mlskygrid( tree, res = resx)
 plot( fit , logy=FALSE)
 ```

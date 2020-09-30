@@ -37,9 +37,9 @@ require(mlesky)
 # load the tree
 tree <- ape::read.tree(system.file('mrsa.nwk', package = 'mlesky'))
 
-# run mleksy with defaults
-(fit <- mlskygrid( tree ))
-#>  Estimating Ne(t)...
+# run with defaults
+fit <- mlskygrid( tree )
+print(fit)
 #> mlskygrid fit
 #>  Smoothing parameter tau = 1 
 #> 
@@ -78,20 +78,18 @@ plot ( fit , logy = FALSE )
 Note there’s a lot of uncertainty \>20 years in the past when there are
 very few lineages remaining in the tree. We can focus the analysis on
 the portion of the tree that is more informative using the
-`NeStartTimeBeforePresent` parameter. We also us cross-validation to
+`NeStartTimeBeforePresent` parameter. We also use cross-validation to
 optimize the smoothing parameter:
 
 ``` r
-(
 fit <- mlskygrid( tree
   , tau = NULL, tau_lower = 1, tau_upper = 20
   , ncpu = 6
   , res = 50
   , NeStartTimeBeforePresent = 20)
-)
 #> Precision parameter *tau* not provided. Computing now....
-#> Precision parameter tau =  12.5094881723107 
-#>  Estimating Ne(t)...
+#> Precision parameter tau =  12.5094881723107
+print(fit)
 #> mlskygrid fit
 #>  Smoothing parameter tau = 12.5094881723107 
 #> 
@@ -147,7 +145,6 @@ fit <- mlskygrid( tree
 #> 48                     -1.0374259 181.214952 257.691070  366.44155
 #> 49                     -0.8810516 165.231077 245.248162  364.01543
 #> 50                     -0.3999231 143.067467 240.045944  402.76141
-
 plot( fit , logy=FALSE)
 ```
 
@@ -169,8 +166,8 @@ require(mlesky)
 tree <- ape::read.tree( system.file('sn02ag2.0.nwk', package='mlesky') )
 
 # mlesky with default parameters
-(fit <- mlskygrid( tree ))
-#>  Estimating Ne(t)...
+fit <- mlskygrid( tree )
+print(fit)
 #> mlskygrid fit
 #>  Smoothing parameter tau = 1 
 #> 
@@ -209,10 +206,10 @@ plot( fit, logy=FALSE)
 Now we use cross-validation to find the smoothing parameter:
 
 ``` r
-( fit <- mlskygrid( tree , tau = NULL, tau_lower = .1, tau_upper = 20 , ncpu = 6) )
+fit <- mlskygrid( tree , tau = NULL, tau_lower = .1, tau_upper = 20 , ncpu = 6)
 #> Precision parameter *tau* not provided. Computing now....
-#> Precision parameter tau =  4.68873851061673 
-#>  Estimating Ne(t)...
+#> Precision parameter tau =  4.68873851061673
+print(fit)
 #> mlskygrid fit
 #>  Smoothing parameter tau = 4.68873851061673 
 #> 
@@ -243,7 +240,6 @@ Now we use cross-validation to find the smoothing parameter:
 #> 23                     -13.332052 4003.911113 5889.470273  8662.994537
 #> 24                     -10.287495 4725.613125 7153.330353 10828.253135
 #> 25                      -4.302552 3944.794166 6380.379525 10319.738161
-
 plot(fit, logy=FALSE) 
 ```
 
@@ -265,10 +261,10 @@ Simulate the tree with constant Ne:
 library(ape)
 set.seed(0)
 tree=rcoal(100)
-tree$edge.length=tree$edge.length*10
+tree$edge.length=tree$edge.length*10#So that Ne(t)=10
 plot(tree, show.tip.label = F)
 axisPhylo(backward = T)
-mtext("Years since most recent sample", side=1, line=3)
+mtext("Years since sampling", side=1, line=3)
 ```
 
 ![](man/figures/unnamed-chunk-6-1.png)<!-- -->
@@ -276,7 +272,8 @@ mtext("Years since most recent sample", side=1, line=3)
 Find the best `res`:
 
 ``` r
-(resx = optim_res_aic( tree , ncpu = 8))
+resx = optim_res_aic( tree , ncpu = 8)
+print(resx)
 #> [1] 3
 ```
 
@@ -287,8 +284,8 @@ system.
 Estimate Ne(t):
 
 ``` r
-(fit <- mlskygrid( tree, res = resx))
-#>  Estimating Ne(t)...
+fit <- mlskygrid( tree, res = resx)
+print(fit)
 #> mlskygrid fit
 #>  Smoothing parameter tau = 1 
 #> 
@@ -297,7 +294,6 @@ Estimate Ne(t):
 #> 1                    -4.19397409 7.031767  9.804544 13.67069
 #> 2                    -0.27698306 7.797813 10.507264 14.15815
 #> 3                    -0.05097893 7.447436 10.384128 14.47882
-
 plot( fit , logy=FALSE)
 ```
 

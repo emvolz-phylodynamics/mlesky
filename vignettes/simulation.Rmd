@@ -31,9 +31,9 @@ plotBoth(t,alphaFun)
 We now infer the past population size given the phylogeny, with res selected using the AIC criterion:
 
 ```{r}
-res=optim_res_aic(t,ncpu = 8)
+res=optim_res_aic(t,ncpu = 6,adapt_time_axis=F)
 print(res)
-fit=mlskygrid(t,res=res)
+fit=mlskygrid(t,res=res,adapt_time_axis=F,tau=NULL,tau_lower = 1,tau_upper = 20,ncpu=6)
 plot(fit)
 ```
 
@@ -42,8 +42,8 @@ plot(fit)
 We now infer the past population size given the phylogeny, with res selected using the BIC criterion:
 
 ```{r}
-res=optim_res_bic(t,ncpu = 8)
+res=optim_res_bic(t,ncpu = 6,adapt_time_axis=F)
 print(res)
-fit=mlskygrid(t,res=res)
+fit=mlskygrid(t,res=res,adapt_time_axis=F,tau=NULL,tau_lower = 1,tau_upper = 20,ncpu=6)
 plot(fit)
 ```

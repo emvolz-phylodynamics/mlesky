@@ -142,7 +142,7 @@ optim_res_bic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ..
 }
 
 
-.mlskygrid_oos <- function( tau, tredat, ne0, res = 50, maxHeight = Inf, quiet = FALSE, control = NULL, ncross = 5, ncpu = 1){
+.mlskygrid_oos <- function( tau, tredat, ne0, res = 50, maxHeight = Inf, quiet = TRUE, control = NULL, ncross = 5, ncpu = 1){
 	if ( ncross < 2 ) stop('*ncross* must be > 1')
 	
 	ne <- rlnorm( res , log( ne0 ), .2 ) # add some jitter
@@ -303,7 +303,7 @@ mlskygrid <- function(tre
 	
 	# estimate tau 
 	tauof <- function(tau){
-		.mlskygrid_oos( tau, tredat, ne0, res =res, maxHeight = NeStartTimeBeforePresent, ncross = ncross, ncpu = ncpu)
+		.mlskygrid_oos( tau, tredat, ne0, res =res, maxHeight = NeStartTimeBeforePresent, ncross = ncross, ncpu = ncpu,quiet=quiet)
 	}
 	if (is.null(tau )){
 		cat('Precision parameter *tau* not provided. Computing now....\n')
