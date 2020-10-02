@@ -173,7 +173,7 @@ optim_res_bic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ..
 	}
 	
 	of.cv.oos <- function(logne, icross  ){
-		sum( lterms( logne )[ cvsets[[icross]] ] ) + roughness_penalty( logne )
+		sum( lterms( logne )[ cvsets[[icross]] ] ) # + roughness_penalty( logne )
 	}
 	
 	of.cv.ws <- function(logne, icross){
