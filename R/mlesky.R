@@ -45,7 +45,7 @@ x add covars for
 		stopifnot( inherits (tre, c('phylo','treedater') ))
 		D <- ape::node.depth.edgelength( apephylo )
 		rh <- max( D[1:n] )
-		rhs = rh # for compatability with multitree version 
+		rhs = rh # for compatibility with multitree version 
 		sts <- D[1:n]
 		maxHeight <- min( rh, maxHeight )
 		
@@ -112,7 +112,7 @@ x add covars for
 #' @param tree A dated phylogeny in ape::phylo format
 #' @param res A vector of time axis resolution parameters to test 
 #' @param ncpu Integer number of cores to use with parallel processing 
-#' @param ... Remaining paramters are passed to mlskygrid 
+#' @param ... Remaining parameters are passed to mlskygrid 
 #' @export 
 optim_res_aic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ... )
 { 
@@ -124,20 +124,25 @@ optim_res_aic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ..
 	res[ which.min( aics )]
 }
 
+#' Optimize the skygrid time axis resolution using BIC criterion
+#' 
+#' @param tree A dated phylogeny in ape::phylo format
+#' @param res A vector of time axis resolution parameters to test 
+#' @param ncpu Integer number of cores to use with parallel processing 
+#' @param ... Remaining parameters are passed to mlskygrid 
+#' @export 
+optim_res_bic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ... )
+{ 
+  res2bic <- function(r){
+    ll1 <- mlskygrid( tree, res = r, ncpu =ncpu,  ...)$loglik
+    r * log(tree$Nnode) - 2 * ll1
+  }
+  bics <- unlist( parallel::mclapply( res,  res2bic, mc.cores = ncpu ) )
+  res[ which.min( bics )]
+}
 
 
-#' Objective function for cross validation; computes out-sample-iog likelihood and takes mean of all crosses 
-#' @export
-.mlskygrid_oos <- function( tau 
-  , tredat
-  , ne0 
-  , res = 50 
-  , maxHeight = Inf 
-  , quiet = FALSE
-  , control = NULL
-  , ncross = 5
-  , ncpu = 1
-){
+.mlskygrid_oos <- function( tau, tredat, ne0, res = 50, maxHeight = Inf, quiet = TRUE, control = NULL, ncross = 5, ncpu = 1){
 	if ( ncross < 2 ) stop('*ncross* must be > 1')
 	
 	ne <- rlnorm( res , log( ne0 ), .2 ) # add some jitter
@@ -235,11 +240,11 @@ optim_res_aic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ..
 #' @return A fitted model including effective size through time
 #' @export
 # @examples
-# library(mlskygrid)
+# library(mlesky)
 # tree <- read.tree( system.file( package='mlskygrid', 'mrsa.nwk' , mustWork=TRUE) ) 
 # print( (fit <- mlskygrid( tree, tau = 10, NeStartTimeBeforePresent = 15) ))
 # plot( fit , logy = FALSE)
-mlsky = mlskygrid <- function(tre
+mlskygrid <- function(tre
   , sampleTimes = NULL
   , res = 25 
   , tau = 1
@@ -301,7 +306,7 @@ mlsky = mlskygrid <- function(tre
 	
 	# estimate tau 
 	tauof <- function(tau){
-		.mlskygrid_oos( tau, tredat, ne0, res =res, maxHeight = NeStartTimeBeforePresent, ncross = ncross, ncpu = ncpu)
+		.mlskygrid_oos( tau, tredat, ne0, res =res, maxHeight = NeStartTimeBeforePresent, ncross = ncross, ncpu = ncpu,quiet=quiet)
 	}
 	if (is.null(tau )){
 		cat('Precision parameter *tau* not provided. Computing now....\n')
@@ -336,7 +341,7 @@ mlsky = mlskygrid <- function(tre
 		sum( lterms( logne )) + roughness_penalty( logne )
 	}
 	
-	cat( ' Estimating Ne(t)...\n')
+	#cat( ' Estimating Ne(t)...\n')
 	optim( par = log(ne), fn = of 
 	  , method = 'BFGS'
 	  , control = list( trace = ifelse(quiet, 0, 1), fnscale  = -1 )
@@ -395,79 +400,84 @@ mlsky = mlskygrid <- function(tre
 ##############
 .neplot <- function( fit, ggplot=TRUE, logy = TRUE , ... )
 {
+  nemed <- nelb <- neub <- NULL
 	stopifnot(inherits(fit, "mlskygrid"))
+  if (!is.null(fit$tre$root.time)) dateLastSample=fit$tre$root.time+max(dist.nodes(fit$tre)[Ntip(fit$tre)+1,]) else dateLastSample=0
 	ne <- fit$ne_ci
 	if ( 'ggplot2' %in% installed.packages()  & ggplot)
 	{
-		pldf <- data.frame( t = fit$time, nelb = ne[,1], nemed = ne[,2], neub = ne[,3] )
+		pldf <- data.frame( t = dateLastSample+fit$time, nelb = ne[,1], nemed = ne[,2], neub = ne[,3] )
 		pl <- ggplot2::ggplot( pldf, ggplot2::aes( x = t, y = nemed), ... ) + ggplot2::geom_line() + ggplot2::geom_ribbon( ggplot2::aes( ymin = nelb, ymax = neub), fill = 'blue', alpha = .2) + ggplot2::ylab('Effective population size') + ggplot2::xlab('Time before most recent sample')
 		if (logy) pl <- pl + ggplot2::scale_y_log10()
 		return(pl)
 	} else{
 		if (logy)
-			plot( fit$time, ne[,2], ylim=range(ne[,1:3],na.rm=T),lwd =2, col = 'black', type = 'l', log='y',xlab='Time', ylab='Effective population size', ...)
+			plot( dateLastSample+fit$time, ne[,2], ylim=range(ne[,1:3],na.rm=T),lwd =2, col = 'black', type = 'l', log='y',xlab='Time', ylab='Effective population size', ...)
 		else
-			plot( fit$time, ne[,2], ylim=range(ne[,1:3],na.rm=T),lwd =2, col = 'black', type = 'l',xlab='Time', ylab='Effective population size', ...)
-		lines( fit$time, ne[,1] , lty=3)
-		lines( fit$time, ne[,3] , lty=3)
+			plot( dateLastSample+fit$time, ne[,2], ylim=range(ne[,1:3],na.rm=T),lwd =2, col = 'black', type = 'l',xlab='Time', ylab='Effective population size', ...)
+		lines( dateLastSample+fit$time, ne[,1] , lty=3)
+		lines( dateLastSample+fit$time, ne[,3] , lty=3)
 		invisible(fit)
 	}
 }
 
 .growthplot  <- function( fit , ggplot=TRUE, logy=FALSE, ...)
 {
+  gr<-NULL
 	stopifnot(inherits(fit, "mlskygrid"))
+	if (!is.null(fit$tre$root.time)) dateLastSample=fit$tre$root.time+max(dist.nodes(fit$tre)[Ntip(fit$tre)+1,]) else dateLastSample=0
 	if ( 'ggplot2' %in% installed.packages()  & ggplot)
 	{
-		pldf <- data.frame( t = fit$time, gr = fit$growth)
+		pldf <- data.frame( t = dateLastSample+fit$time, gr = fit$growth)
 		pl <- ggplot2::ggplot( pldf, ggplot2::aes( x = t, y = gr), ... ) + ggplot2::geom_line() + ggplot2::ylab('Growth rate') + ggplot2::xlab('Time before most recent sample')
 		if (logy) pl <- pl + ggplot2::scale_y_log10() 
 		return(pl)
 	} else{
 		if (logy)
-			plot( fit$time, fit$growth, lwd =2, col = 'black', type = 'l', log='y', xlab='Time', ylab='Growth rate',...)
+			plot( dateLastSample+fit$time, fit$growth, lwd =2, col = 'black', type = 'l', log='y', xlab='Time', ylab='Growth rate',...)
 		else
-			plot( fit$time, fit$growth, lwd =2, col = 'black', type = 'l', xlab='Time', ylab='Growth rate', ...)
+			plot( dateLastSample+fit$time, fit$growth, lwd =2, col = 'black', type = 'l', xlab='Time', ylab='Growth rate', ...)
 		
 		invisible(fit)
 	}
 }
 
 
-#' Plot mleskygrid 
+#' Plot mlskygrid 
 #'
-#' @param fit A fitted object
+#' @param x A fitted object
 #' @param growth If TRUE will plot estimated growth rate instead of Ne(t) 
 #' @param logy  If TRUE, the plot is returned with logarithmic y-axis
 #' @param ggplot  If TRUE, returns a ggplot2 figure
 #' @param ... Additional parameters are passed to ggplot or the base plotting function
 #' @return Plotted object 
 #' @export
-plot.mlskygrid <- function(fit, growth=FALSE, ggplot=FALSE, logy=TRUE, ... ){
+plot.mlskygrid <- function(x, growth=FALSE, ggplot=FALSE, logy=TRUE, ... ){
 	if (growth) {
-	  return(.growthplot(fit, ggplot, logy, ... ))
+	  return(.growthplot(x, ggplot, logy, ... ))
 	} else{
-		return(.neplot(fit, ggplot, logy, ... ))
+		return(.neplot(x, ggplot, logy, ... ))
 	}
 }
 
-#' Print fitted mleskygrid 
+#' Print fitted mlskygrid 
 #'
-#' @param fit Fitted mleskygrid object 
+#' @param x Fitted mlskygrid object 
+#' @param ... Additional parameters are passed on
 #' @export 
-print.mlskygrid <- function( fit ){
-	stopifnot(inherits(fit, "mlskygrid"))
-	d <- as.data.frame( fit$ne_ci )
-	d <- cbind( fit$time, d )
-	if ( is.null ( fit$sampleTimes )){
+print.mlskygrid <- function( x,... ){
+	stopifnot(inherits(x, "mlskygrid"))
+	d <- as.data.frame( x$ne_ci )
+	d <- cbind( x$time, d )
+	if ( is.null ( x$sampleTimes )){
 		colnames( d ) <- c( 'Time before most recent sample', '2.5%', 'MLE', '97.5%' )
 	} else {
 		colnames( d ) <- c( 'Time', '2.5%', 'MLE', '97.5%' )
 	}
 	cat(paste( 'mlskygrid fit
-	Smoothing parameter tau =', fit$tau, '\n\n'))
+	Smoothing parameter tau =', x$tau, '\n\n'))
 	
 	cat( 'Estimated Ne(t): \n')
-	print ( d )
-	invisible( fit )
+	print ( d,... )
+	invisible( x )
 }

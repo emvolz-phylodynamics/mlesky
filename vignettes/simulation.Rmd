@@ -1,0 +1,49 @@
+---
+title: "Application to simulated data"
+author: "Xavier Didelot"
+date: '`r Sys.Date()`'
+output:
+  pdf_document: default
+vignette: >
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteIndexEntry{Application to simulated data}
+  %\usepackage[utf8]{inputenc}
+---
+
+# Simulation
+
+Let's consider that the effective population size was of size 10 except between 2000 and 2010 
+when it was of size 1 (bottleneck model). Ten samples per year are taken at uniform timepoints 
+between 1990 and 2020. We can simulate such a phylogeny using:
+
+```{r}
+library(ape)
+library(mlesky)
+set.seed(0)
+alphaFun=function(x){if (x<2000 || x>2010) 10 else 1}
+sampleDates=seq(1990,2020,0.1)
+t=simCoal(sampleDates,alphaFun)
+plotBoth(t,alphaFun)
+```
+
+# Inference using AIC
+
+We now infer the past population size given the phylogeny, with res selected using the AIC criterion:
+
+```{r}
+res=optim_res_aic(t,ncpu = 6,adapt_time_axis=F)
+print(res)
+fit=mlskygrid(t,res=res,adapt_time_axis=F,tau=NULL,tau_lower = 1,tau_upper = 20,ncpu=6)
+plot(fit)
+```
+
+# Inference using BIC
+
+We now infer the past population size given the phylogeny, with res selected using the BIC criterion:
+
+```{r}
+res=optim_res_bic(t,ncpu = 6,adapt_time_axis=F)
+print(res)
+fit=mlskygrid(t,res=res,adapt_time_axis=F,tau=NULL,tau_lower = 1,tau_upper = 20,ncpu=6)
+plot(fit)
+```

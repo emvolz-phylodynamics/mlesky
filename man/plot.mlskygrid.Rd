@@ -2,12 +2,12 @@
 % Please edit documentation in R/mlesky.R
 \name{plot.mlskygrid}
 \alias{plot.mlskygrid}
-\title{Plot mleskygrid}
+\title{Plot mlskygrid}
 \usage{
-\method{plot}{mlskygrid}(fit, growth = FALSE, ggplot = FALSE, logy = TRUE, ...)
+\method{plot}{mlskygrid}(x, growth = FALSE, ggplot = FALSE, logy = TRUE, ...)
 }
 \arguments{
-\item{fit}{A fitted object}
+\item{x}{A fitted object}
 
 \item{growth}{If TRUE will plot estimated growth rate instead of Ne(t)}
 
@@ -21,5 +21,5 @@
 Plotted object
 }
 \description{
-Plot mleskygrid
+Plot mlskygrid
 }
