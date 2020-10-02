@@ -366,7 +366,7 @@ mlskygrid <- function(tre
 	neub <- exp( logne + fsigma*1.96 )
 	ne_ci <- cbind( nelb, ne, neub )
 	
-	growthrate <-  c( diff ( ne  ) / (ne[-res] ) / dh[-res] , NA)
+	
 	loglik = of ( fit$par ) - roughness_penalty ( fit$par )
 	
 	mst = ifelse( is.null(sampleTimes), 0, max(sampleTimes) )
@@ -374,6 +374,7 @@ mlskygrid <- function(tre
 	h2 <- -c( sort( -tredat$h[ tredat$type == 'neswitch' ] ) , 0)
 	time <- h2  - diff( c(max(tredat$h), h2) )/2
 	time <- mst - time 
+	growthrate  = c( diff( ne ) / ( ne[-length(ne)]* diff(time)  ) , NA) 
 	rv <- list( 
 		ne =  ne
 	  , ne_ci = ne_ci  
