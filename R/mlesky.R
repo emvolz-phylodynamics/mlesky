@@ -142,12 +142,16 @@ optim_res_aic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ..
 	
 	ne <- rlnorm( res , log( ne0 ), .2 ) # add some jitter
 	
-	dh <- tredat$rh[1] / res 
-	
 	cvsets = lapply( 1:ncross, function(icross) seq( icross, nrow(tredat), by = ncross ) )
 	
+	dh <- sapply( 1:res, function(i) tredat$dh[ which(tredat$ne_bin==i)[1]] )
+	dh2 <- dh[ -c(1, length(dh)) ]
+	
+	rp_terms <- function(logne){
+		dnorm( diff(diff( logne)), 0, sd = sqrt(dh2/tau), log = TRUE)
+	}
 	roughness_penalty <- function(logne){
-		sum( dnorm( diff(diff( logne)), 0, sd = sqrt(dh/tau), log = TRUE) )
+		sum( na.omit(rp_terms(logne)) )
 	}
 	
 	lterms <- function(logne)
@@ -184,7 +188,6 @@ optim_res_aic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ..
 		logne = fits[[i]]$par 
 		of.cv.oos( logne, i )
 	})
-	
 	sum( oos_perfs )
 }
 
