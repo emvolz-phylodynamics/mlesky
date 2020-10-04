@@ -256,7 +256,10 @@ mlskygrid <- function(tre
   , quiet = TRUE
   , NeStartTimeBeforePresent = Inf 
   , ne0 = NULL
-  , adapt_time_axis = TRUE 
+  , adapt_time_axis = FALSE 
+  , formula = NULL # should not have left hand side;
+  , formula_order = c( 0, 1, 2) # lhs is 0'th 1st or 2nd deriv of ne wrt time 
+  , data = NULL # data.frame must include 'time' 
 ){
 	apephylo <- tre
 	if ( inherits( tre, c('multiPhylo','list') ) ){
@@ -271,7 +274,7 @@ mlskygrid <- function(tre
 	if (!is.null( sampleTimes )){
 		stopifnot( is.numeric( sampleTimes ))
 		sampleTimes <- sampleTimes[apephylo$tip]
-	}
+	}	
 	
 	if ( is.null( res )){
 		res = optim_res_aic( tre, tau = tau, tau_lower = tau_lower, tau_upper = tau_upper, tau_tol = tau_tol, ncross = ncross, ncpu = ncpu , quiet = quiet, NeStartTimeBeforePresent = NeStartTimeBeforePresent, ne0 = ne0, adapt_time_axis = adapt_time_axis, sampleTimes=sampleTimes )
@@ -301,6 +304,74 @@ mlskygrid <- function(tre
 	}
 	
 	
+	# if covariates 
+	ncovar = 0 
+	if (!is.null( formula )){
+		formula_order = formula_order[1]
+		stopifnot( !is.null(sampleTimes)  ) 
+		stopifnot( !is.null(data)  ) 
+		
+		# do an initial fit without covars to serve as initial condition
+		fit0 <- mlskygrid(tre
+		  , sampleTimes = sampleTimes
+		  , res = res 
+		  , tau = tau
+		  , tau_lower = tau_lower 
+		  , tau_upper = tau_upper
+		  , tau_tol = tau_tol 
+		  , ncross = ncross
+		  , ncpu = ncpu
+		  , quiet = quiet
+		  , NeStartTimeBeforePresent = NeStartTimeBeforePresent 
+		  , ne0 = ne0
+		  , adapt_time_axis = adapt_time_axis 
+		  , formula = NULL 
+		  , data = NULL 
+		)
+		
+		X0 <- as.data.frame( model.matrix(  formula , data ) )
+		betanames <- colnames( X0 )[-1]
+		ncovar = length( betanames )
+		X0 <- cbind( time = data$time 
+		 , X0 )
+		
+		covar.df <- data.frame( time =fit0$time[-c(1,length(fit0$time))], y = diff(diff(log(fit0$ne))) )
+		for ( bn in betanames ){
+			itime <- setdiff( order( X0$time ), which(is.na( X0[[bn]] )) )
+			if ( formula_order == 0 ){
+				x = diff( diff( X0[[bn]][itime] ))
+				xt = X0$time[itime[-c(1,length(itime))]] 
+			}else if ( formula_order ==1  ){
+				x = diff( X0[[bn]][itime] ) 
+				xt = X0$time[itime[-length(itime)]] + diff( X0$time[itime] ) 
+			}else if ( formula_order == 2){
+				x =  X0[[bn]][itime]
+				xt = X0$time[itime]
+			} else{
+				stop('formula_order > 2 not supported')
+			}
+			covar.df[[bn]] <- approx( xt , x, xout = covar.df$time)$y
+		}
+		covar.df <- covar.df[ order( covar.df$time) , ] 
+		lmfit <- lm ( formula(
+			   paste0( paste( 'y', paste( betanames , collapse = '+'), sep='~' ) , '-1' )
+			 )
+			 , data = covar.df 
+			)
+		
+		beta0 <- coef(lmfit)
+		tau = fit0$tau 
+		ne0 = fit0$ne 
+		beta2zxb <- function( beta ){
+			if ( length( betanames ) > 1 ){
+				zedCrossBeta <- as.vector( as.matrix(covar.df[, betanames]) %*% beta )
+			} else{
+				zedCrossBeta <- covar.df[, betanames] * beta 
+			}
+			rev( zedCrossBeta ) #  b/c reverse time axis of Ne in optimizer
+		}
+	}
+	
 	dh <- sapply( 1:res, function(i) tredat$dh[ which(tredat$ne_bin==i)[1]] )
 	dh2 <- dh[ -c(1, length(dh)) ]
 	
@@ -316,12 +387,17 @@ mlskygrid <- function(tre
 	}
 	#/estimate tau 
 	
-	rp_terms <- function(logne){
-		dnorm( diff(diff( logne)), 0, sd = sqrt(dh2/tau), log = TRUE)
+
+	
+	rp_terms <- function( logne, b = NULL  ){
+		y = 0 
+		if (!is.null(b))
+			y =  beta2zxb( b ) 
+		dnorm( diff(diff( logne)), y, sd = sqrt(dh2/tau), log = TRUE)
 	}
 	
-	roughness_penalty <- function(logne){
-		sum( na.omit(rp_terms(logne)) )
+	roughness_penalty <- function(logne, b = NULL){
+		sum( na.omit(rp_terms(logne, b)) )
 	}
 	
 	lterms <- function(logne)
@@ -337,12 +413,24 @@ mlskygrid <- function(tre
 		coterms + sterms 
 	}
 	
-	of <- function(logne ){
-		sum( lterms( logne )) + roughness_penalty( logne )
+	if ( ncovar == 0 ){
+		of <- function(logne ){ 
+			sum( lterms( logne )) + roughness_penalty( logne )
+		}
+	} else{
+		of <- function( theta ){ 
+			b = tail( theta , ncovar ) 
+			logne = head( theta, length(theta) - ncovar )
+			sum( lterms( logne )) + roughness_penalty( logne, b )
+		}
 	}
 	
 	#cat( ' Estimating Ne(t)...\n')
-	optim( par = log(ne), fn = of 
+	theta0 <- log( ne ) 
+	if (ncovar > 0 )
+		theta0 <- c( theta0, beta0 )
+	
+	optim( par = theta0, fn = of 
 	  , method = 'BFGS'
 	  , control = list( trace = ifelse(quiet, 0, 1), fnscale  = -1 )
 	  , hessian = TRUE 
@@ -359,15 +447,23 @@ mlskygrid <- function(tre
 	
 	#output 
 	# note reverse axis 
-	fsigma <- rev( fsigma )
-	logne <- rev( fit$par )
-	ne <- rev( exp( fit$par ))
-	nelb <- exp( logne - fsigma*1.96 )
-	neub <- exp( logne + fsigma*1.96 )
+	theta <- fit$par 
+	logne = theta 
+	beta = NULL 
+	if ( ncovar > 0 ){
+		logne <- head( theta , length( theta ) - ncovar )
+		beta <- tail( theta, ncovar )
+	}
+	# reverse 
+	fsigma_ne <- rev( head( fsigma, length( fsigma) - ncovar ) )
+	logne <- rev( logne )
+	ne <- exp( logne )
+	nelb <- exp( logne - fsigma_ne*1.96 )
+	neub <- exp( logne + fsigma_ne*1.96 )
 	ne_ci <- cbind( nelb, ne, neub )
 	
 	
-	loglik = of ( fit$par ) - roughness_penalty ( fit$par )
+	loglik = fit$value #of ( fit$par ) - roughness_penalty ( fit$par )
 	
 	mst = ifelse( is.null(sampleTimes), 0, max(sampleTimes) )
 	
@@ -383,13 +479,15 @@ mlskygrid <- function(tre
 	  , time = time 
 	  , tredat = tredat
 	  , tre = tre	
-	  , sigma = fsigma 
+	  , sigma = fsigma_ne 
+	  , fsigma = fsigma 
 	  , optim = fit 
 	  , loglik = loglik
-	  , rp = roughness_penalty( fit$par )
-	  , rpterms = rp_terms( fit$par ) 
-	  , lterms = lterms( fit$par )
+	  , rp = ifelse( ncovar == 0 , roughness_penalty( theta ),  roughness_penalty( theta, beta ) )
+	  , rpterms = ifelse( ncovar == 0 , rp_terms( theta ),  rp_terms( theta, beta ) )
+	  , lterms = lterms( theta )
 	  , sampleTimes = sampleTimes
+	  , beta = beta 
 	)
 	class(rv) <- 'mlskygrid'
 	rv
