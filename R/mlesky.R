@@ -141,11 +141,11 @@ optim_res_bic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ..
   res[ which.min( bics )]
 }
 
-
+#This function calculates the cross-validation score for a given tau
 .mlskygrid_oos <- function( tau, tredat, ne0, res = 50, maxHeight = Inf, quiet = TRUE, control = NULL, ncross = 5, ncpu = 1){
-	if ( ncross < 2 ) stop('*ncross* must be > 1')
+	if ( ncross < 2 ) stop('*ncross* must be at least two')
 	
-	ne <- rlnorm( res , log( ne0 ), .2 ) # add some jitter
+  ne=ne0#ne <- rlnorm( res , log( ne0 ), .2 ) # add some jitter
 	
 	cvsets = lapply( 1:ncross, function(icross) seq( icross, nrow(tredat), by = ncross ) )
 	
@@ -236,7 +236,7 @@ optim_res_bic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ..
 #' @param quiet Provide verbose output from optimizer? 
 #' @param NeStartTimeBeforePresent If <Inf, will only estimate Ne(t) between the most recent sample and this time before the most recent sample
 #' @param adapt_time_axis If TRUE will choose Ne(t) change points in periods with high frequency of phylogenetic branching
-#' @param ne0 Vector of length *res* giving starting conditions of Ne(t) for optimization
+#' @param ne0 Vector of length *res* giving starting conditions of Ne(t) for optimization, or a single value which will be used as rep(ne0,res)
 #' @return A fitted model including effective size through time
 #' @export
 # @examples
@@ -295,7 +295,7 @@ mlskygrid <- function(tre
 		}) -> .ne
 		.ne[ .ne == 0 ] <- NA
 		ne0 <- median( .ne, na.rm=T)
-		ne <- rlnorm( res , log( ne0 ), .2 ) # add some jitter
+		ne0<-rep(ne0,res);ne<-ne0#ne <- rlnorm( res , log( ne0 ), .2 ) # add some jitter
 	} else{
 		if ( length(ne0)==1){
 			ne0 <- rep( ne0, res )

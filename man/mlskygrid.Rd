@@ -17,7 +17,10 @@ mlskygrid(
   quiet = TRUE,
   NeStartTimeBeforePresent = Inf,
   ne0 = NULL,
-  adapt_time_axis = TRUE
+  adapt_time_axis = FALSE,
+  formula = NULL,
+  formula_order = c(0, 1, 2),
+  data = NULL
 )
 }
 \arguments{

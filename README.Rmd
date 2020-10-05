@@ -59,8 +59,6 @@ res=optim_res_aic(treeMRSA,ncpu=6)
 print(res)
 fit <- mlskygrid(treeMRSA, tau = NULL, tau_lower = 1, tau_upper = 20, ncpu = 6,res=res)
 plot(fit,logy=FALSE)
-#fit <- mlskygrid(treeMRSA, tau = NULL, tau_lower = 1, tau_upper = 20, ncpu = 2,res=NULL)
-#optimise both at the same time???
 ```
 
 ## HIV example 
@@ -112,6 +110,6 @@ Note that this tests multiple `res` values and can quickened using multi-core pr
 
 Estimate Ne(t):
 ```{r}
-fit <- mlskygrid( tree, res = resx)
+fit <- mlskygrid( tree, res = resx, tau=NULL, tau_lower = 1,tau_upper = 10000)
 plot( fit , logy=FALSE)
 ```
