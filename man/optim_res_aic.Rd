@@ -4,7 +4,7 @@
 \alias{optim_res_aic}
 \title{Optimize the skygrid time axis resolution using AIC criterion}
 \usage{
-optim_res_aic(tree, res = c(3, seq(10, 100, by = 10)), ncpu = 1, ...)
+optim_res_aic(tree, res = c(1:5, seq(10, 100, by = 10)), ncpu = 1, ...)
 }
 \arguments{
 \item{tree}{A dated phylogeny in ape::phylo format}

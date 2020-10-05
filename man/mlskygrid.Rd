@@ -46,9 +46,15 @@ mlskygrid(
 
 \item{NeStartTimeBeforePresent}{If <Inf, will only estimate Ne(t) between the most recent sample and this time before the most recent sample}
 
-\item{ne0}{Vector of length *res* giving starting conditions of Ne(t) for optimization}
+\item{ne0}{Vector of length *res* giving starting conditions of Ne(t) for optimization, or a single value which will be used as rep(ne0,res)}
 
 \item{adapt_time_axis}{If TRUE will choose Ne(t) change points in periods with high frequency of phylogenetic branching}
+
+\item{formula}{Formula for use of covariates, should not have left hand side}
+
+\item{formula_order}{For use of covariates, lhs is 0'th 1st or 2nd deriv of ne wrt time}
+
+\item{data}{For use of covariates, data.frame must include 'time'}
 }
 \value{
 A fitted model including effective size through time

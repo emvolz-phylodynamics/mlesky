@@ -235,8 +235,11 @@ optim_res_bic <- function(tree, res = c(1:5, seq(10, 100, by = 10)),  ncpu = 1, 
 #' @param ncpu If doing cross-validation, each fold will be handled in parallel if ncpu > 1 (see parallel package)
 #' @param quiet Provide verbose output from optimizer? 
 #' @param NeStartTimeBeforePresent If <Inf, will only estimate Ne(t) between the most recent sample and this time before the most recent sample
-#' @param adapt_time_axis If TRUE will choose Ne(t) change points in periods with high frequency of phylogenetic branching
 #' @param ne0 Vector of length *res* giving starting conditions of Ne(t) for optimization, or a single value which will be used as rep(ne0,res)
+#' @param adapt_time_axis If TRUE will choose Ne(t) change points in periods with high frequency of phylogenetic branching
+#' @param formula Formula for use of covariates, should not have left hand side
+#' @param formula_order For use of covariates, lhs is 0'th 1st or 2nd deriv of ne wrt time 
+#' @param data For use of covariates, data.frame must include 'time' 
 #' @return A fitted model including effective size through time
 #' @export
 # @examples
@@ -257,9 +260,9 @@ mlskygrid <- function(tre
   , NeStartTimeBeforePresent = Inf 
   , ne0 = NULL
   , adapt_time_axis = FALSE 
-  , formula = NULL # should not have left hand side;
-  , formula_order = c( 0, 1, 2) # lhs is 0'th 1st or 2nd deriv of ne wrt time 
-  , data = NULL # data.frame must include 'time' 
+  , formula = NULL 
+  , formula_order = c( 0, 1, 2) 
+  , data = NULL 
 ){
 	apephylo <- tre
 	if ( inherits( tre, c('multiPhylo','list') ) ){
@@ -414,18 +417,12 @@ mlskygrid <- function(tre
 		coterms + sterms 
 	}
 	
-	if ( ncovar == 0 ){
-		of <- function(logne ){ 
-			sum( lterms( logne )) + roughness_penalty( logne )
-		}
-	} else{
-		of <- function( theta ){ 
-			b = tail( theta , ncovar ) 
-			logne = head( theta, length(theta) - ncovar )
-			sum( lterms( logne )) + roughness_penalty( logne, b )
-		}
+	of <- function( theta ){ 
+		if (ncovar == 0) b = NULL else b = tail( theta , ncovar ) 
+		logne = head( theta, length(theta) - ncovar )
+		sum( lterms( logne )) + roughness_penalty( logne, b )
 	}
-	
+
 	#cat( ' Estimating Ne(t)...\n')
 	theta0 <- log( ne ) 
 	if (ncovar > 0 )
@@ -463,7 +460,6 @@ mlskygrid <- function(tre
 	neub <- exp( logne + fsigma_ne*1.96 )
 	ne_ci <- cbind( nelb, ne, neub )
 	
-	#loglik = fit$value #of ( fit$par ) - roughness_penalty ( fit$par )
 	loglik = of ( fit$par ) - roughness_penalty ( fit$par )
 	
 	mst = ifelse( is.null(sampleTimes), 0, max(sampleTimes) )
