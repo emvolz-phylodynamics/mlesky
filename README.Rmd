@@ -103,13 +103,13 @@ mtext("Years since sampling", side=1, line=3)
 
 Find the best `res`:
 ```{r}
-resx = optim_res_aic( tree , ncpu = 8)
+resx = optim_res_aic( tree , ncpu = 8,adapt_time_axis = T)
 print(resx)
 ```
 Note that this tests multiple `res` values and can quickened using multi-core processing. The `ncpu` parameter should be chosen for your system. 
 
 Estimate Ne(t):
 ```{r}
-fit <- mlskygrid( tree, res = resx, tau=NULL, tau_lower = 1,tau_upper = 10000)
+fit <- mlskygrid( tree, res = resx, tau=NULL, tau_lower = 1,tau_upper = 10000,adapt_time_axis = T)
 plot( fit , logy=FALSE)
 ```

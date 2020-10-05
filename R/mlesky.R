@@ -114,7 +114,7 @@ x add covars for
 #' @param ncpu Integer number of cores to use with parallel processing 
 #' @param ... Remaining parameters are passed to mlskygrid 
 #' @export 
-optim_res_aic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ... )
+optim_res_aic <- function(tree, res = c(1:5, seq(10, 100, by = 10)),  ncpu = 1, ... )
 { 
 	res2aic <- function(r){
 		ll1 <- mlskygrid( tree, res = r, ncpu =ncpu,  ...)$loglik
@@ -131,7 +131,7 @@ optim_res_aic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ..
 #' @param ncpu Integer number of cores to use with parallel processing 
 #' @param ... Remaining parameters are passed to mlskygrid 
 #' @export 
-optim_res_bic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ... )
+optim_res_bic <- function(tree, res = c(1:5, seq(10, 100, by = 10)),  ncpu = 1, ... )
 { 
   res2bic <- function(r){
     ll1 <- mlskygrid( tree, res = r, ncpu =ncpu,  ...)$loglik
@@ -156,7 +156,7 @@ optim_res_bic <- function(tree, res = c(3, seq(10, 100, by = 10)),  ncpu = 1, ..
 		dnorm( diff(diff( logne)), 0, sd = sqrt(dh2/tau), log = TRUE)
 	}
 	roughness_penalty <- function(logne){
-		sum( na.omit(rp_terms(logne)) )
+	  sum(rp_terms(logne))#sum( na.omit(rp_terms(logne)) )
 	}
 	
 	lterms <- function(logne)
@@ -279,14 +279,15 @@ mlskygrid <- function(tre
 	if ( is.null( res )){
 		res = optim_res_aic( tre, tau = tau, tau_lower = tau_lower, tau_upper = tau_upper, tau_tol = tau_tol, ncross = ncross, ncpu = ncpu , quiet = quiet, NeStartTimeBeforePresent = NeStartTimeBeforePresent, ne0 = ne0, adapt_time_axis = adapt_time_axis, sampleTimes=sampleTimes )
 	}
-	if ( res < 3) 
-	  stop('The minimum allowable *res* value is 3.')
+	if ( res < 1) 
+	  stop('The minimum allowable *res* value is 1.')
 	
 	tredat <- .tre2df(apephylo = apephylo,  tre = tre, res = res , maxHeight= NeStartTimeBeforePresent, adapt_time_axis = adapt_time_axis , sampleTimes = sampleTimes )
 	if ( is.null( tau  ) ) {
 		if ( is.null(tau_lower) | is.null(tau_upper))
 		 stop('If *tau* is not specified, boundaries *tau_lower* and *tau_upper* must be specified.')
 	}
+	if (res<3) tau=NULL
 	
 	if ( is.null( ne0 )){
 		coint <- ape::coalescent.intervals( apephylo )
@@ -379,7 +380,7 @@ mlskygrid <- function(tre
 	tauof <- function(tau){
 		.mlskygrid_oos( tau, tredat, ne0, res =res, maxHeight = NeStartTimeBeforePresent, ncross = ncross, ncpu = ncpu,quiet=quiet)
 	}
-	if (is.null(tau )){
+	if (is.null(tau) && res>=3){
 		cat('Precision parameter *tau* not provided. Computing now....\n')
 		taustar <- optimize( tauof, lower = tau_lower, upper = tau_upper, maximum = TRUE , tol = tau_tol)
 		tau = taustar$maximum 
@@ -397,7 +398,7 @@ mlskygrid <- function(tre
 	}
 	
 	roughness_penalty <- function(logne, b = NULL){
-		sum( na.omit(rp_terms(logne, b)) )
+	  sum(rp_terms(logne, b))#sum( na.omit(rp_terms(logne, b)) )
 	}
 	
 	lterms <- function(logne)
@@ -462,8 +463,8 @@ mlskygrid <- function(tre
 	neub <- exp( logne + fsigma_ne*1.96 )
 	ne_ci <- cbind( nelb, ne, neub )
 	
-	
-	loglik = fit$value #of ( fit$par ) - roughness_penalty ( fit$par )
+	#loglik = fit$value #of ( fit$par ) - roughness_penalty ( fit$par )
+	loglik = of ( fit$par ) - roughness_penalty ( fit$par )
 	
 	mst = ifelse( is.null(sampleTimes), 0, max(sampleTimes) )
 	
@@ -501,6 +502,15 @@ mlskygrid <- function(tre
 {
   nemed <- nelb <- neub <- NULL
 	stopifnot(inherits(fit, "mlskygrid"))
+
+	if (length(fit$ne)==1) {#This is in case res=1
+	  fit$ne=rep(fit$ne,2)
+	  fit$ne_ci=rbind(fit$ne_ci,fit$ne_ci)
+	  fit$time=rep(fit$time,2)
+	}
+	fit$time[1]=-sum(fit$tredat$intervalLength)#Force leftmost point to the root date
+	fit$time[length(fit$time)]=0#Force rightmost point to the most recent leaf date
+	
   if (!is.null(fit$tre$root.time)) dateLastSample=fit$tre$root.time+max(dist.nodes(fit$tre)[Ntip(fit$tre)+1,]) else dateLastSample=0
 	ne <- fit$ne_ci
 	if ( 'ggplot2' %in% installed.packages()  & ggplot)
