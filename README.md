@@ -25,48 +25,6 @@ In R, install the `devtools` package and run
   - Add regression models for non-genetic time-series
   - Parameter to select order of differencing in GMRF
 
-## MRSA example
-
-Here we reanalyze the MRSA phylogeny from **Volz & Didelot, Systematic
-Biology 2018**.
-
-``` r
-require(mlesky)
-#> Loading required package: mlesky
-treeMRSA <- ape::read.tree(system.file('mrsa.nwk', package = 'mlesky'))
-treeMRSA$root.time=1967.306
-fit <- mlskygrid(treeMRSA)
-plot (fit, logy = FALSE)
-```
-
-![](man/figures/unnamed-chunk-2-1.png)<!-- --> The analysis above
-assumed the default smoothing parameter `tau=1`. We can use
-cross-validation to optimize this smoothing parameter:
-
-``` r
-fit <- mlskygrid(treeMRSA, tau = NULL, tau_lower = 1, tau_upper = 20, ncpu = 6)
-#> Precision parameter *tau* not provided. Computing now....
-#> Precision parameter tau =  6.84588258702027
-plot(fit,logy=FALSE)
-```
-
-![](man/figures/unnamed-chunk-3-1.png)<!-- -->
-
-We can use AIC to optimise res and then use the cross-validation to
-optimise tau:
-
-``` r
-res=optim_res_aic(treeMRSA,ncpu=6)
-print(res)
-#> [1] 20
-fit <- mlskygrid(treeMRSA, tau = NULL, tau_lower = 1, tau_upper = 20, ncpu = 6,res=res)
-#> Precision parameter *tau* not provided. Computing now....
-#> Precision parameter tau =  5.33971052525813
-plot(fit,logy=FALSE)
-```
-
-![](man/figures/unnamed-chunk-4-1.png)<!-- -->
-
 ## HIV example
 
 We analyzed 399 HIV-1 sequences from Senegal between 1990 and 2014. All
@@ -78,23 +36,24 @@ Here is the `mlesky` analysis
 
 ``` r
 require(mlesky)
+#> Loading required package: mlesky
 treeHIV <- ape::read.tree( system.file('sn02ag2.0.nwk', package='mlesky') )
 fit <- mlskygrid(treeHIV)
 plot( fit, logy=FALSE)
 ```
 
-![](man/figures/unnamed-chunk-5-1.png)<!-- -->
+![](man/figures/unnamed-chunk-2-1.png)<!-- -->
 
 Now we use cross-validation to find the smoothing parameter:
 
 ``` r
 fit <- mlskygrid(treeHIV, tau = NULL, tau_lower = 0.1, tau_upper = 20 , ncpu = 6)
 #> Precision parameter *tau* not provided. Computing now....
-#> Precision parameter tau =  17.9472656021754
+#> Precision parameter tau =  7.45544756178241
 plot(fit, logy=FALSE) 
 ```
 
-![](man/figures/unnamed-chunk-6-1.png)<!-- -->
+![](man/figures/unnamed-chunk-3-1.png)<!-- -->
 
 ## Constant Ne(t)
 
@@ -118,7 +77,7 @@ axisPhylo(backward = T)
 mtext("Years since sampling", side=1, line=3)
 ```
 
-![](man/figures/unnamed-chunk-7-1.png)<!-- -->
+![](man/figures/unnamed-chunk-4-1.png)<!-- -->
 
 Find the best `res`:
 
@@ -139,4 +98,4 @@ fit <- mlskygrid( tree, res = resx, tau=NULL, tau_lower = 1,tau_upper = 10000,ad
 plot( fit , logy=FALSE)
 ```
 
-![](man/figures/unnamed-chunk-9-1.png)<!-- -->
+![](man/figures/unnamed-chunk-6-1.png)<!-- -->

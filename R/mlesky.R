@@ -14,7 +14,7 @@ x add covars for
 
 
 # derive timeseries of coalescent and ltt along appropriate time axis 
-.tre2df <- function( apephylo, tre, res, maxHeight = Inf, minLTT = 1, adapt_time_axis = TRUE, sampleTimes = NULL ){
+.tre2df <- function( apephylo, tre, res, maxHeight = Inf, minLTT = 1, adapt_time_axis = F, sampleTimes = NULL ){
 	n <- ape::Ntip( apephylo )
 	if (is.null( minLTT)) 
 	  minLTT <- floor( n / 5 ) 
@@ -141,8 +141,27 @@ optim_res_bic <- function(tree, res = c(1:5, seq(10, 100, by = 10)),  ncpu = 1, 
   res[ which.min( bics )]
 }
 
+roughness_penalty <- function(logne,dh,tau,b=NULL,model=1){
+  y=0
+  if (!is.null(b)) y=b
+  if (model==1) {#mlesky model
+    dh2 <- dh[ -c(1, length(dh)) ]
+    rp_terms=dnorm(diff(diff( logne)), y, sd = sqrt(dh2/tau), log = TRUE)
+  }
+  if (model==2) {#skygrid model
+    dh2 <- dh[ -1 ]
+    rp_terms=dnorm(diff(logne), y, sd = sqrt(dh2/tau), log = TRUE)
+  }
+  if (model==3) {#skygrowth model
+    dh2 <- dh[ -c(1, length(dh)) ]
+    rhos=diff(exp(logne))/exp(logne[-length(logne)])
+    rp_terms=dnorm( rhos, y, sd = sqrt(dh2/tau), log = TRUE)
+  }
+  sum(rp_terms)
+}
+
 #This function calculates the cross-validation score for a given tau
-.mlskygrid_oos <- function( tau, tredat, ne0, res = 50, maxHeight = Inf, quiet = TRUE, control = NULL, ncross = 5, ncpu = 1){
+.mlskygrid_oos <- function( tau, tredat, ne0, res = 50, maxHeight = Inf, quiet = TRUE, control = NULL, ncross = 5, ncpu = 1,model=1){
 	if ( ncross < 2 ) stop('*ncross* must be at least two')
 	
   ne=ne0#ne <- rlnorm( res , log( ne0 ), .2 ) # add some jitter
@@ -150,14 +169,6 @@ optim_res_bic <- function(tree, res = c(1:5, seq(10, 100, by = 10)),  ncpu = 1, 
 	cvsets = lapply( 1:ncross, function(icross) seq( icross, nrow(tredat), by = ncross ) )
 	
 	dh <- sapply( 1:res, function(i) tredat$dh[ which(tredat$ne_bin==i)[1]] )
-	dh2 <- dh[ -c(1, length(dh)) ]
-	
-	rp_terms <- function(logne){
-		dnorm( diff(diff( logne)), 0, sd = sqrt(dh2/tau), log = TRUE)
-	}
-	roughness_penalty <- function(logne){
-	  sum(rp_terms(logne))#sum( na.omit(rp_terms(logne)) )
-	}
 	
 	lterms <- function(logne)
 	{
@@ -173,12 +184,12 @@ optim_res_bic <- function(tree, res = c(1:5, seq(10, 100, by = 10)),  ncpu = 1, 
 	}
 	
 	of.cv.oos <- function(logne, icross  ){
-		sum( lterms( logne )[ cvsets[[icross]] ] ) # + roughness_penalty( logne )
+		sum( lterms( logne )[ cvsets[[icross]] ] )
 	}
 	
 	of.cv.ws <- function(logne, icross){
 		i = setdiff(1:nrow(tredat) , cvsets[[icross]]  )
-		sum( lterms( logne )[ i ] ) + roughness_penalty( logne )
+		sum( lterms( logne )[ i ] ) + roughness_penalty( logne,dh,tau,model )
 	}
 	
 	fits <- parallel::mclapply( 1:ncross, function(icross){
@@ -237,6 +248,7 @@ optim_res_bic <- function(tree, res = c(1:5, seq(10, 100, by = 10)),  ncpu = 1, 
 #' @param NeStartTimeBeforePresent If <Inf, will only estimate Ne(t) between the most recent sample and this time before the most recent sample
 #' @param ne0 Vector of length *res* giving starting conditions of Ne(t) for optimization, or a single value which will be used as rep(ne0,res)
 #' @param adapt_time_axis If TRUE will choose Ne(t) change points in periods with high frequency of phylogenetic branching
+#' @param model Model to use, can be 1 (=mlesky model), 2 (=skygrid model) or 3 (=skygrowth model)
 #' @param formula Formula for use of covariates, should not have left hand side
 #' @param formula_order For use of covariates, lhs is 0'th 1st or 2nd deriv of ne wrt time 
 #' @param data For use of covariates, data.frame must include 'time' 
@@ -260,6 +272,7 @@ mlskygrid <- function(tre
   , NeStartTimeBeforePresent = Inf 
   , ne0 = NULL
   , adapt_time_axis = FALSE 
+  , model=1
   , formula = NULL 
   , formula_order = c( 0, 1, 2) 
   , data = NULL 
@@ -280,7 +293,7 @@ mlskygrid <- function(tre
 	}	
 	
 	if ( is.null( res )){
-		res = optim_res_aic( tre, tau = tau, tau_lower = tau_lower, tau_upper = tau_upper, tau_tol = tau_tol, ncross = ncross, ncpu = ncpu , quiet = quiet, NeStartTimeBeforePresent = NeStartTimeBeforePresent, ne0 = ne0, adapt_time_axis = adapt_time_axis, sampleTimes=sampleTimes )
+		res = optim_res_aic( tre, tau = tau, tau_lower = tau_lower, tau_upper = tau_upper, tau_tol = tau_tol, ncross = ncross, ncpu = ncpu , quiet = quiet, NeStartTimeBeforePresent = NeStartTimeBeforePresent, ne0 = ne0, adapt_time_axis = adapt_time_axis, sampleTimes=sampleTimes,model=model )
 	}
 	if ( res < 1) 
 	  stop('The minimum allowable *res* value is 1.')
@@ -377,11 +390,10 @@ mlskygrid <- function(tre
 	}
 	
 	dh <- sapply( 1:res, function(i) tredat$dh[ which(tredat$ne_bin==i)[1]] )
-	dh2 <- dh[ -c(1, length(dh)) ]
-	
+
 	# estimate tau 
 	tauof <- function(tau){
-		.mlskygrid_oos( tau, tredat, ne0, res =res, maxHeight = NeStartTimeBeforePresent, ncross = ncross, ncpu = ncpu,quiet=quiet)
+		.mlskygrid_oos( tau, tredat, ne0, res =res, maxHeight = NeStartTimeBeforePresent, ncross = ncross, ncpu = ncpu,quiet=quiet,model=model)
 	}
 	if (is.null(tau) && res>=3){
 		cat('Precision parameter *tau* not provided. Computing now....\n')
@@ -390,19 +402,6 @@ mlskygrid <- function(tre
 		cat( paste( 'Precision parameter tau = ', tau , '\n') )
 	}
 	#/estimate tau 
-	
-
-	
-	rp_terms <- function( logne, b = NULL  ){
-		y = 0 
-		if (!is.null(b))
-			y =  beta2zxb( b ) 
-		dnorm( diff(diff( logne)), y, sd = sqrt(dh2/tau), log = TRUE)
-	}
-	
-	roughness_penalty <- function(logne, b = NULL){
-	  sum(rp_terms(logne, b))#sum( na.omit(rp_terms(logne, b)) )
-	}
 	
 	lterms <- function(logne)
 	{
@@ -420,7 +419,7 @@ mlskygrid <- function(tre
 	of <- function( theta ){ 
 		if (ncovar == 0) b = NULL else b = tail( theta , ncovar ) 
 		logne = head( theta, length(theta) - ncovar )
-		sum( lterms( logne )) + roughness_penalty( logne, b )
+		sum(lterms( logne)) + roughness_penalty(logne,dh,tau,ifelse(ncovar==0,0,beta2zxb(b)),model=model)
 	}
 
 	#cat( ' Estimating Ne(t)...\n')
@@ -460,7 +459,7 @@ mlskygrid <- function(tre
 	neub <- exp( logne + fsigma_ne*1.96 )
 	ne_ci <- cbind( nelb, ne, neub )
 	
-	loglik = of ( fit$par ) - roughness_penalty ( fit$par )
+	loglik = of ( fit$par ) - roughness_penalty ( fit$par,dh,tau,model=model )
 	
 	mst = ifelse( is.null(sampleTimes), 0, max(sampleTimes) )
 	
@@ -480,8 +479,8 @@ mlskygrid <- function(tre
 	  , fsigma = fsigma 
 	  , optim = fit 
 	  , loglik = loglik
-	  , rp = ifelse( ncovar == 0 , roughness_penalty( theta ),  roughness_penalty( theta, beta ) )
-	  , rpterms = ifelse( ncovar == 0 , rp_terms( theta ),  rp_terms( theta, beta ) )
+#	  , rp = ifelse( ncovar == 0 , roughness_penalty( theta ),  roughness_penalty( theta, beta ) )
+#	  , rpterms = ifelse( ncovar == 0 , rp_terms( theta ),  rp_terms( theta, beta ) )
 	  , lterms = lterms( theta )
 	  , sampleTimes = sampleTimes
 	  , beta = beta 

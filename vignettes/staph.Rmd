@@ -1,0 +1,46 @@
+---
+title: "Application to MRSA data"
+author: "Xavier Didelot"
+date: '`r Sys.Date()`'
+output:
+  pdf_document: default
+vignette: >
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteIndexEntry{Application to MRSA data}
+  %\usepackage[utf8]{inputenc}
+---
+
+Here we reanalyze the MRSA phylogeny from __Volz & Didelot, Systematic Biology 2018__. 
+
+```{r}
+require(mlesky)
+treeMRSA <- ape::read.tree(system.file('mrsa.nwk', package = 'mlesky'))
+treeMRSA$root.time=1967.306
+fit <- mlskygrid(treeMRSA)
+plot (fit, logy = FALSE)
+
+```
+The analysis above assumed the default smoothing parameter `tau=1`.
+We can use cross-validation to optimize this smoothing parameter: 
+```{r}
+fit <- mlskygrid(treeMRSA, tau = NULL, tau_lower = 1, tau_upper = 20, ncpu = 6)
+plot(fit,logy=FALSE)
+```
+
+We can use AIC to optimise res and then use the cross-validation to optimise tau:
+```{r}
+res=optim_res_aic(treeMRSA,ncpu=6)
+print(res)
+fit <- mlskygrid(treeMRSA, tau = NULL, tau_lower = 1, tau_upper = 20, ncpu = 6,res=res)
+plot(fit,logy=FALSE)
+```
+
+Let's compare the three models:
+```{r}
+fit <- mlskygrid(treeMRSA, tau = NULL, tau_lower = 1, tau_upper = 20, ncpu = 6,res=20,model=1)
+plot(fit,logy=FALSE)
+fit <- mlskygrid(treeMRSA, tau = NULL, tau_lower = 1, tau_upper = 20, ncpu = 6,res=20,model=2)
+plot(fit,logy=FALSE)
+fit <- mlskygrid(treeMRSA, tau = NULL, tau_lower = 1, tau_upper = 20, ncpu = 6,res=20,model=3)
+plot(fit,logy=FALSE)
+```

@@ -18,6 +18,7 @@ mlskygrid(
   NeStartTimeBeforePresent = Inf,
   ne0 = NULL,
   adapt_time_axis = FALSE,
+  model = 1,
   formula = NULL,
   formula_order = c(0, 1, 2),
   data = NULL
@@ -49,6 +50,8 @@ mlskygrid(
 \item{ne0}{Vector of length *res* giving starting conditions of Ne(t) for optimization, or a single value which will be used as rep(ne0,res)}
 
 \item{adapt_time_axis}{If TRUE will choose Ne(t) change points in periods with high frequency of phylogenetic branching}
+
+\item{model}{Model to use, can be 1 (=mlesky model), 2 (=skygrid model) or 3 (=skygrowth model)}
 
 \item{formula}{Formula for use of covariates, should not have left hand side}
 

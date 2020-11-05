@@ -34,33 +34,6 @@ devtools::install_github('emvolz-phylodynamics/mleksy')
 * Add regression models for non-genetic time-series 
 * Parameter to select order of differencing in GMRF 
 
-## MRSA example 
-
-Here we reanalyze the MRSA phylogeny from __Volz & Didelot, Systematic Biology 2018__. 
-
-```{r}
-require(mlesky)
-treeMRSA <- ape::read.tree(system.file('mrsa.nwk', package = 'mlesky'))
-treeMRSA$root.time=1967.306
-fit <- mlskygrid(treeMRSA)
-plot (fit, logy = FALSE)
-
-```
-The analysis above assumed the default smoothing parameter `tau=1`.
-We can use cross-validation to optimize this smoothing parameter: 
-```{r}
-fit <- mlskygrid(treeMRSA, tau = NULL, tau_lower = 1, tau_upper = 20, ncpu = 6)
-plot(fit,logy=FALSE)
-```
-
-We can use AIC to optimise res and then use the cross-validation to optimise tau:
-```{r}
-res=optim_res_aic(treeMRSA,ncpu=6)
-print(res)
-fit <- mlskygrid(treeMRSA, tau = NULL, tau_lower = 1, tau_upper = 20, ncpu = 6,res=res)
-plot(fit,logy=FALSE)
-```
-
 ## HIV example 
 
 We analyzed 399 HIV-1 sequences from Senegal between 1990 and 2014. 
