@@ -17,7 +17,7 @@ Bayesian skygrid model with the following notable differences:
 
 In R, install the `devtools` package and run
 
-    devtools::install_github('emvolz-phylodynamics/mleksy')
+    devtools::install_github('emvolz-phylodynamics/mlesky')
 
 ## Roadmap
 
