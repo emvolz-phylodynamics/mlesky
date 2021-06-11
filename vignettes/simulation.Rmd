@@ -10,7 +10,37 @@ vignette: >
   %\usepackage[utf8]{inputenc}
 ---
 
-# Simulation
+# Constant population size
+
+Skyline, skyride and skygrid models have a tendency to erroneously identify exponential growth in situations where the size is constant. 
+We can ameliorate that error by selecting a smaller time-axis resolution.
+
+Simulate the tree with constant Ne: 
+```{r}
+library(ape)
+library(mlesky)
+set.seed(0)
+tree=rcoal(100)
+tree$edge.length=tree$edge.length*10#So that Ne(t)=10
+plot(tree, show.tip.label = F)
+axisPhylo(backward = T)
+mtext("Years since sampling", side=1, line=3)
+```
+
+Find the best `res`:
+```{r}
+resx = optim_res_aic( tree , ncpu = 8,adapt_time_axis = T)
+print(resx)
+```
+Note that this tests multiple `res` values using multi-core processing. The `ncpu` parameter should be chosen for your system. 
+
+Estimate Ne(t):
+```{r}
+fit <- mlskygrid( tree, res = resx, tau=NULL, tau_lower = 1,tau_upper = 10000,adapt_time_axis = T)
+plot( fit , logy=FALSE)
+```
+
+# Varying population size
 
 Let's consider that the effective population size was of size 10 except between 2000 and 2010 
 when it was of size 1 (bottleneck model). Ten samples per year are taken at uniform timepoints 
@@ -26,8 +56,6 @@ t=simCoal(sampleDates,alphaFun)
 plotBoth(t,alphaFun)
 ```
 
-# Inference using AIC
-
 We now infer the past population size given the phylogeny, with res selected using the AIC criterion:
 
 ```{r}
@@ -36,8 +64,6 @@ print(res)
 fit=mlskygrid(t,res=res,tau=NULL,tau_lower = 1,tau_upper = 20,ncpu=2)
 plot(fit)
 ```
-
-# Inference using BIC
 
 We now infer the past population size given the phylogeny, with res selected using the BIC criterion:
 

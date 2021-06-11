@@ -1,0 +1,32 @@
+---
+title: "Application to HIV data"
+author: "Erik Volz"
+date: '`r Sys.Date()`'
+output:
+  pdf_document: default
+vignette: >
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteIndexEntry{Application to HIV data}
+  %\usepackage[utf8]{inputenc}
+---
+
+## HIV example 
+
+We analyzed 399 HIV-1 sequences from Senegal between 1990 and 2014. 
+All sequences are subtype CRF02_AG. `treedater` analysis shows a common ancestor around 1970 with LTT having rapid change in the early 1980s when the HIV epidemic was expanding. 
+
+Here is the `mlesky` analysis 
+
+```{r} 
+require(mlesky)
+treeHIV <- ape::read.tree( system.file('sn02ag2.0.nwk', package='mlesky') )
+fit <- mlskygrid(treeHIV)
+plot( fit, logy=FALSE)
+```
+
+Now we use cross-validation to find the smoothing parameter: 
+
+```{r} 
+fit <- mlskygrid(treeHIV, tau = NULL, tau_lower = 0.1, tau_upper = 20 , ncpu = 6)
+plot(fit, logy=FALSE) 
+```
