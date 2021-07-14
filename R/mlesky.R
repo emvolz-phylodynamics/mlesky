@@ -355,7 +355,6 @@ mlskygrid <- function(tre
 			covar.df[[bn]] <- approx( xt , x, xout = covar.df$time,rule = 2)$y
 		}
 		covar.df <- covar.df[ order( covar.df$time) , ] 
-		print(covar.df)
 		lmfit <- lm ( formula(
 			   paste0( paste( 'y', paste( betanames , collapse = '+'), sep='~' ) , '-1' )
 			 )
