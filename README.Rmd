@@ -13,13 +13,19 @@ knitr::opts_chunk$set(
 set.seed(0)
 ```
 
-# mlesky : Maximum likelihood inference of effective population size through time using GMRF-skygrid approach
+# mlesky : Maximum likelihood phylodynamic inference
 
-This package is related to previous Bayesian implementations of the Bayesian skygrid model with the following notable differences: 
+This package performs inference of past population size dynamics from a dated phylogeny using a maximum likelihood approach. 
+The main features are as follows:
 
-* The GMRF process takes place on the 2nd-order difference of log(Ne), which is more similar to the `skygrowth` model of Volz & Didelot 
-* When computing the GMRF likelihood, the smoothing parameter (ie the precision of random walk) is fixed
-* We use a novel cross-validation approach for selecting the smoothing parameter 
+* Three different phylodynamic models are implemented (skygrid, skygrowth and skysigma)
+* A novel cross-validation approach is used for selecting the smoothing parameter 
+* The resolution of the grid can be selected using AIC or BIC
+* Covariate data can be included into the analysis to quantify association
+* Multiple phylogenies can be analysed simultaneously that share the same demographic function
+
+For a complete description of the statistical methodology underpinning this package, see our preprint:
+https://www.biorxiv.org/content/10.1101/2021.01.18.427056v1.full
 
 ## Installation
 

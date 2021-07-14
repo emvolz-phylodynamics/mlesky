@@ -1,18 +1,3 @@
-invisible('#
-DONE
-x cross validation
-x maxheight option 
-x print and plot methods 
-
-TODO 
-x ?bootstrap CIs 
-x add covars for 
-	- size
-	- logsize 
-	- growth 
-')
-
-
 # derive timeseries of coalescent and ltt along appropriate time axis 
 .tre2df <- function( apephylo, tre, res, maxHeight = Inf, minLTT = 1, adapt_time_axis = F, sampleTimes = NULL ){
 	n <- ape::Ntip( apephylo )
@@ -370,6 +355,7 @@ mlskygrid <- function(tre
 			covar.df[[bn]] <- approx( xt , x, xout = covar.df$time,rule = 2)$y
 		}
 		covar.df <- covar.df[ order( covar.df$time) , ] 
+		print(covar.df)
 		lmfit <- lm ( formula(
 			   paste0( paste( 'y', paste( betanames , collapse = '+'), sep='~' ) , '-1' )
 			 )
