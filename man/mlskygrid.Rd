@@ -51,7 +51,7 @@ mlskygrid(
 
 \item{adapt_time_axis}{If TRUE will choose Ne(t) change points in periods with high frequency of phylogenetic branching}
 
-\item{model}{Model to use, can be 1 (=mlesky model), 2 (=skygrid model) or 3 (=skygrowth model)}
+\item{model}{Model to use, can be 1 (=skysigma model), 2 (=skygrid model) or 3 (=skygrowth model)}
 
 \item{formula}{Formula for use of covariates, should not have left hand side}
 

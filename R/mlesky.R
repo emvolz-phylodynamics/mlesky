@@ -144,7 +144,7 @@ optim_res_bic <- function(tree, res = c(1:5, seq(10, 100, by = 10)),  ncpu = 1, 
 roughness_penalty <- function(logne,dh,tau,b=NULL,model=1){
   y=0
   if (!is.null(b)) y=b
-  if (model==1) {#mlesky model
+  if (model==1) {#skysigma model
     dh2 <- dh[ -c(1, length(dh)) ]
     rp_terms=dnorm(diff(diff( logne)), y, sd = sqrt(dh2/tau), log = TRUE)
   }
@@ -248,7 +248,7 @@ roughness_penalty <- function(logne,dh,tau,b=NULL,model=1){
 #' @param NeStartTimeBeforePresent If <Inf, will only estimate Ne(t) between the most recent sample and this time before the most recent sample
 #' @param ne0 Vector of length *res* giving starting conditions of Ne(t) for optimization, or a single value which will be used as rep(ne0,res)
 #' @param adapt_time_axis If TRUE will choose Ne(t) change points in periods with high frequency of phylogenetic branching
-#' @param model Model to use, can be 1 (=mlesky model), 2 (=skygrid model) or 3 (=skygrowth model)
+#' @param model Model to use, can be 1 (=skysigma model), 2 (=skygrid model) or 3 (=skygrowth model)
 #' @param formula Formula for use of covariates, should not have left hand side
 #' @param formula_order For use of covariates, lhs is 0'th 1st or 2nd deriv of ne wrt time 
 #' @param data For use of covariates, data.frame must include 'time' 
@@ -367,7 +367,7 @@ mlskygrid <- function(tre
 			} else{
 				stop('formula_order > 2 not supported')
 			}
-			covar.df[[bn]] <- approx( xt , x, xout = covar.df$time)$y
+			covar.df[[bn]] <- approx( xt , x, xout = covar.df$time,rule = 2)$y
 		}
 		covar.df <- covar.df[ order( covar.df$time) , ] 
 		lmfit <- lm ( formula(
