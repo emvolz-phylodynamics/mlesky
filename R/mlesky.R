@@ -503,10 +503,17 @@ mlskygrid <- function(tre
 	  fit$ne_ci=rbind(fit$ne_ci,fit$ne_ci)
 	  fit$time=rep(fit$time,2)
 	}
-	fit$time[1]=-sum(fit$tredat$intervalLength)#Force leftmost point to the root date
-	fit$time[length(fit$time)]=0#Force rightmost point to the most recent leaf date
 	
-  if (!is.null(fit$tre$root.time)) dateLastSample=fit$tre$root.time+max(dist.nodes(fit$tre)[Ntip(fit$tre)+1,]) else dateLastSample=0
+	if (is.null(fit$sampleTimes)) {
+	  fit$time[1]=-sum(fit$tredat$intervalLength)#Force leftmost point to the root date
+	  fit$time[length(fit$time)]=0#Force rightmost point to the most recent leaf date
+    if (!is.null(fit$tre$root.time)) dateLastSample=fit$tre$root.time+max(dist.nodes(fit$tre)[Ntip(fit$tre)+1,]) else dateLastSample=0
+	} else {
+	  fit$time[1]=max(fit$sampleTimes)-sum(fit$tredat$intervalLength)#Force leftmost point to the root date
+	  fit$time[length(fit$time)]=max(fit$sampleTimes)#Force rightmost point to the most recent leaf date
+	  dateLastSample=0
+	}
+	
 	ne <- fit$ne_ci
 	if ( 'ggplot2' %in% installed.packages()  & ggplot)
 	{
@@ -551,16 +558,18 @@ mlskygrid <- function(tre
 #'
 #' @param x A fitted object
 #' @param growth If TRUE will plot estimated growth rate instead of Ne(t) 
-#' @param logy  If TRUE, the plot is returned with logarithmic y-axis
+#' @param logy  If TRUE, the plot is returned with logarithmic y-axis (default is TRUE for Ne plot and FALSE for growth plot)
 #' @param ggplot  If TRUE, returns a ggplot2 figure
 #' @param ... Additional parameters are passed to ggplot or the base plotting function
 #' @return Plotted object 
 #' @export
-plot.mlskygrid <- function(x, growth=FALSE, ggplot=FALSE, logy=TRUE, ... ){
+plot.mlskygrid <- function(x, growth=FALSE, ggplot=FALSE, logy, ... ){
 	if (growth) {
+	  if (missing(logy)) logy=F
 	  return(.growthplot(x, ggplot, logy, ... ))
 	} else{
-		return(.neplot(x, ggplot, logy, ... ))
+	  if (missing(logy)) logy=T
+	  return(.neplot(x, ggplot, logy, ... ))
 	}
 }
 

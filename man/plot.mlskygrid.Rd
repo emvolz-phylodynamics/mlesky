@@ -4,7 +4,7 @@
 \alias{plot.mlskygrid}
 \title{Plot mlskygrid}
 \usage{
-\method{plot}{mlskygrid}(x, growth = FALSE, ggplot = FALSE, logy = TRUE, ...)
+\method{plot}{mlskygrid}(x, growth = FALSE, ggplot = FALSE, logy, ...)
 }
 \arguments{
 \item{x}{A fitted object}
@@ -13,7 +13,7 @@
 
 \item{ggplot}{If TRUE, returns a ggplot2 figure}
 
-\item{logy}{If TRUE, the plot is returned with logarithmic y-axis}
+\item{logy}{If TRUE, the plot is returned with logarithmic y-axis (default is TRUE for Ne plot and FALSE for growth plot)}
 
 \item{...}{Additional parameters are passed to ggplot or the base plotting function}
 }
