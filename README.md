@@ -25,7 +25,7 @@ this package, see our preprint:
 
 In R, install the `devtools` package and run
 
-    devtools::install_github('emvolz-phylodynamics/mleksy')
+    devtools::install_github('emvolz-phylodynamics/mlesky')
 
 ## Documentation
 
