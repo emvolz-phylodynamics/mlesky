@@ -308,6 +308,7 @@ mlskygrid <- function(tre
 	
 	# if covariates 
 	ncovar = 0 
+	covar.df = NA 
 	if (!is.null( formula )){
 		formula_order = formula_order[1]
 		stopifnot( !is.null(sampleTimes)  ) 
@@ -337,7 +338,8 @@ mlskygrid <- function(tre
 		X0 <- cbind( time = data$time 
 		 , X0 )
 		
-		covar.df <- data.frame( time =fit0$time[-c(1,length(fit0$time))], y = diff(diff(log(fit0$ne))) )
+		covar.df <- data.frame( time =fit0$time[-c(1,length(fit0$time))], y = diff(diff(log(fit0$ne)))
+		, logne = log(fit0$ne)[-c(1,length(fit0$time))]  )
 		for ( bn in betanames ){
 			itime <- setdiff( order( X0$time ), which(is.na( X0[[bn]] )) )
 			if ( formula_order == 0 ){
@@ -347,7 +349,7 @@ mlskygrid <- function(tre
 				x = diff( X0[[bn]][itime] ) 
 				xt = X0$time[itime[-length(itime)]] + diff( X0$time[itime] ) 
 			}else if ( formula_order == 2){
-				x =  X0[[bn]][itime]
+				x = X0[[bn]][itime]
 				xt = X0$time[itime]
 			} else{
 				stop('formula_order > 2 not supported')
@@ -404,17 +406,27 @@ mlskygrid <- function(tre
 	of <- function( theta ){ 
 		if (ncovar == 0) b = NULL else b = tail( theta , ncovar ) 
 		logne = head( theta, length(theta) - ncovar )
-		sum(lterms( logne)) + roughness_penalty(logne,dh,tau,ifelse(ncovar==0,0,beta2zxb(b)),model=model)
+		lt = sum(lterms( logne)) 
+		rp = roughness_penalty(logne,dh,tau,ifelse(ncovar==0,0,beta2zxb(b)),model=model)
+		lt + rp 
 	}
 
 	#cat( ' Estimating Ne(t)...\n')
 	theta0 <- log( ne ) 
-	if (ncovar > 0 )
+	if (ncovar > 0 ){
 		theta0 <- c( theta0, beta0 )
+	}
 	
+	parscale = rep(1, length( theta0 ))
+	if ( ncovar > 0 ){
+		parscale = c( rep(1, length(ne)), abs(median(log(ne)) / beta0  ) )
+	}
 	optim( par = theta0, fn = of 
 	  , method = 'BFGS'
-	  , control = list( trace = ifelse(quiet, 0, 1), fnscale  = -1 )
+	  , control = list( trace = ifelse(quiet, 0, 1)
+		, fnscale  = -1 
+		, parscale = parscale
+		)
 	  , hessian = TRUE 
 	) -> fit
 	fi <- tryCatch( solve( -fit$hessian), error = function(e) {
@@ -464,11 +476,10 @@ mlskygrid <- function(tre
 	  , fsigma = fsigma 
 	  , optim = fit 
 	  , loglik = loglik
-#	  , rp = ifelse( ncovar == 0 , roughness_penalty( theta ),  roughness_penalty( theta, beta ) )
-#	  , rpterms = ifelse( ncovar == 0 , rp_terms( theta ),  rp_terms( theta, beta ) )
 	  , lterms = lterms( theta )
 	  , sampleTimes = sampleTimes
 	  , beta = beta 
+	  , covar.df  = covar.df
 	)
 	class(rv) <- 'mlskygrid'
 	rv
