@@ -407,7 +407,11 @@ mlskygrid <- function(tre
 		if (ncovar == 0) b = NULL else b = tail( theta , ncovar ) 
 		logne = head( theta, length(theta) - ncovar )
 		lt = sum(lterms( logne)) 
-		rp = roughness_penalty(logne,dh,tau,ifelse(ncovar==0,0,beta2zxb(b)),model=model)
+		.beta2zxb = 0
+		if ( ncovar > 0 ){
+			.beta2zxb = beta2zxb(b)
+		}
+		rp = roughness_penalty(logne,dh,tau,.beta2zxb,model=model)
 		lt + rp 
 	}
 
@@ -429,6 +433,7 @@ mlskygrid <- function(tre
 		)
 	  , hessian = TRUE 
 	) -> fit
+	
 	fi <- tryCatch( solve( -fit$hessian), error = function(e) {
 		warning('Hessian could not be computed. Will not compute CIs.')
 		NA
