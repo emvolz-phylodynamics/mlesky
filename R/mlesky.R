@@ -146,12 +146,26 @@ roughness_penalty <- function(logne,dh,tau,b=NULL,model=1){
 }
 
 #This function calculates the cross-validation score for a given tau
-.mlskygrid_oos <- function( tau, tredat, ne0, res = 50, maxHeight = Inf, quiet = TRUE, control = NULL, ncross = 5, ncpu = 1,model=1){
+.mlskygrid_oos <- function( tau, tredat, ne0, res = 50, maxHeight = Inf, quiet = TRUE, control = NULL, ncross = 5, ncpu = 1,model=1, cvtype = 'interweaved' ){
 	if ( ncross < 2 ) stop('*ncross* must be at least two')
 	
-  ne=ne0#ne <- rlnorm( res , log( ne0 ), .2 ) # add some jitter
+	ne=ne0 #ne <- rlnorm( res , log( ne0 ), .2 ) # add some jitter
 	
-	cvsets = lapply( 1:ncross, function(icross) seq( icross, nrow(tredat), by = ncross ) )
+	if ( cvtype == 'interweaved' ){
+		cvsets = lapply( 1:ncross, function(icross) seq( icross, nrow(tredat), by = ncross ) )
+	} else if ( cvtype == 'segmented' ) {
+		cvbounds <- cbind( 
+			seq( 1/nrow(tredat), 1-1/ncross , length = ncross )
+			, seq( 1/ncross, 1 , length = ncross )
+		) * nrow(tredat)
+		cvbounds[,1] <- ceiling( cvbounds[,1] )
+		cvbounds[,2] <- floor( cvbounds[,2] )
+		cvsets <- lapply( 1:ncross, function(icross){
+			cvbounds[icross,1]:cvbounds[icross,2]
+		})
+	} else{
+		stop('Incorrect cvtype')
+	}
 	
 	dh <- sapply( 1:res, function(i) tredat$dh[ which(tredat$ne_bin==i)[1]] )
 	
@@ -342,19 +356,19 @@ mlskygrid <- function(tre
 		, logne = log(fit0$ne)[-c(1,length(fit0$time))]  )
 		for ( bn in betanames ){
 			itime <- setdiff( order( X0$time ), which(is.na( X0[[bn]] )) )
+			
+			covar.df[[bn]] <- approx( X0$time[itime] , X0[[bn]][itime], xout = covar.df$time,rule = 2)$y
 			if ( formula_order == 0 ){
-				x = diff( diff( X0[[bn]][itime] ))
-				xt = X0$time[itime[-c(1,length(itime))]] 
+				covar.df[[bn]] <- c( NA, NA,  diff( diff( covar.df[[bn]] )  ) )
+				covar.df[[bn]][1:2] <- covar.df[[bn]][3]
 			}else if ( formula_order ==1  ){
-				x = diff( X0[[bn]][itime] ) 
-				xt = X0$time[itime[-length(itime)]] + diff( X0$time[itime] ) 
+				covar.df[[bn]] <- c( NA,  diff( covar.df[[bn]] )  )
+				covar.df[[bn]][1] <- covar.df[[bn]][2]
 			}else if ( formula_order == 2){
-				x = X0[[bn]][itime]
-				xt = X0$time[itime]
+				# do nothing 
 			} else{
 				stop('formula_order > 2 not supported')
 			}
-			covar.df[[bn]] <- approx( xt , x, xout = covar.df$time,rule = 2)$y
 		}
 		covar.df <- covar.df[ order( covar.df$time) , ] 
 		lmfit <- lm ( formula(
@@ -415,7 +429,6 @@ mlskygrid <- function(tre
 		lt + rp 
 	}
 
-	#cat( ' Estimating Ne(t)...\n')
 	theta0 <- log( ne ) 
 	if (ncovar > 0 ){
 		theta0 <- c( theta0, beta0 )
