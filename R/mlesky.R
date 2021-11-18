@@ -507,7 +507,7 @@ mlskygrid <- function(tre
 
 
 ##############
-.neplot <- function( fit, ggplot=TRUE, logy = TRUE , ... )
+.neplot <- function( fit, ggplot=TRUE, logy = TRUE , ylim,... )
 {
   nemed <- nelb <- neub <- NULL
 	stopifnot(inherits(fit, "mlskygrid"))
@@ -536,10 +536,11 @@ mlskygrid <- function(tre
 		if (logy) pl <- pl + ggplot2::scale_y_log10()
 		return(pl)
 	} else{
+	  if (!hasArg('ylim')) ylim=range(ne[,1:3],na.rm=T)
 		if (logy)
-			plot( dateLastSample+fit$time, ne[,2], ylim=range(ne[,1:3],na.rm=T),lwd =2, col = 'black', type = 'l', log='y',xlab='Time', ylab='Effective population size', ...)
+			plot( dateLastSample+fit$time, ne[,2], ylim=ylim,lwd =2, col = 'black', type = 'l', log='y',xlab='Time', ylab='Effective population size', ...)
 		else
-			plot( dateLastSample+fit$time, ne[,2], ylim=range(ne[,1:3],na.rm=T),lwd =2, col = 'black', type = 'l',xlab='Time', ylab='Effective population size', ...)
+			plot( dateLastSample+fit$time, ne[,2], ylim=ylim,lwd =2, col = 'black', type = 'l',xlab='Time', ylab='Effective population size', ...)
 		lines( dateLastSample+fit$time, ne[,1] , lty=3)
 		lines( dateLastSample+fit$time, ne[,3] , lty=3)
 		invisible(fit)
