@@ -91,6 +91,34 @@
 	tredat	
 }
 
+#' Heuristic selection of grid resolution. Selects res based on number 
+#' reduction ins MSE of coalescent times relative to nearest grid point. 
+suggest_res <- function(tree, th = .001 ) 
+{
+	#tree = ape::read.tree( system.file('mrsa.nwk', package = 'mlesky') )
+	#tree = ape::read.tree( system.file('sn02ag2.0.nwk', package = 'mlesky') )
+	ct = tail( ape::node.depth.edgelength( tree ) , ape::Nnode( tree ))
+	#ct <- rnorm( 399, sd = 100 )
+	#~ ct =  rnorm( 1000, mean = 1:100, sd = .25 )
+	#~ ct = rep( 0, 399 )
+	rct = range(ct) 
+	k <- 1 
+	x <- seq( rct[1], rct[2], length = k + 2 )
+	l0 <-  sum( apply( sapply( ct, function(y) (y - x)^2 ), MAR = 2, FUN = min ) )
+	ll <- l0 
+	repeat{ 
+		k <- k + 1 
+		x <- seq( rct[1], rct[2], length = k + 2 )
+		l <- sum( apply( sapply( ct, function(y) (y - x)^2 ), MAR = 2, FUN = min ) )
+		print( c( k, l, x ))
+		if ( (l < (th*l0)) | (ll<=l) ) break
+		#if ( ((ll - l ) / l) < th ) break
+		ll <- l
+	}
+	k <- k - 1 
+	k
+}
+
 
 #' Optimize the skygrid time axis resolution using AIC criterion
 #' 
@@ -98,16 +126,15 @@
 #' @param res A vector of time axis resolution parameters to test 
 #' @param ncpu Integer number of cores to use with parallel processing 
 #' @param ... Remaining parameters are passed to mlskygrid 
-#' @export 
-optim_res_aic <- function(tree, res = c(1:5, seq(10, 100, by = 10)),  ncpu = 1, ... )
-{ 
-	res2aic <- function(r){
-		ll1 <- mlskygrid( tree, res = r, ncpu =ncpu,  ...)$loglik
-		 2 * r - 2 * ll1
-	}
-	aics <- unlist( parallel::mclapply( res,  res2aic, mc.cores = ncpu ) )
-	res[ which.min( aics )]
-}
+#~ optim_res_aic <- function(tree, res = c(1:5, seq(10, 100, by = 10)),  ncpu = 1, ... )
+#~ { 
+#~ 	res2aic <- function(r){
+#~ 		ll1 <- mlskygrid( tree, res = r, ncpu =ncpu,  ...)$loglik
+#~ 		 2 * r - 2 * ll1
+#~ 	}
+#~ 	aics <- unlist( parallel::mclapply( res,  res2aic, mc.cores = ncpu ) )
+#~ 	res[ which.min( aics )]
+#~ }
 
 #' Optimize the skygrid time axis resolution using BIC criterion
 #' 
@@ -115,16 +142,15 @@ optim_res_aic <- function(tree, res = c(1:5, seq(10, 100, by = 10)),  ncpu = 1, 
 #' @param res A vector of time axis resolution parameters to test 
 #' @param ncpu Integer number of cores to use with parallel processing 
 #' @param ... Remaining parameters are passed to mlskygrid 
-#' @export 
-optim_res_bic <- function(tree, res = c(1:5, seq(10, 100, by = 10)),  ncpu = 1, ... )
-{ 
-  res2bic <- function(r){
-    ll1 <- mlskygrid( tree, res = r, ncpu =ncpu,  ...)$loglik
-    r * log(tree$Nnode) - 2 * ll1
-  }
-  bics <- unlist( parallel::mclapply( res,  res2bic, mc.cores = ncpu ) )
-  res[ which.min( bics )]
-}
+#~ optim_res_bic <- function(tree, res = c(1:5, seq(10, 100, by = 10)),  ncpu = 1, ... )
+#~ { 
+#~   res2bic <- function(r){
+#~     ll1 <- mlskygrid( tree, res = r, ncpu =ncpu,  ...)$loglik
+#~     r * log(tree$Nnode) - 2 * ll1
+#~   }
+#~   bics <- unlist( parallel::mclapply( res,  res2bic, mc.cores = ncpu ) )
+#~   res[ which.min( bics )]
+#~ }
 
 roughness_penalty <- function(logne,dh,tau,b=NULL,model=1){
   y=0
