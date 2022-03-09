@@ -91,8 +91,8 @@
 	tredat	
 }
 
-#' Heuristic selection of grid resolution. Selects res based on number 
-#' reduction ins MSE of coalescent times relative to nearest grid point. 
+#' Heuristic selection of grid resolution. Selects res based on  
+#' reduction in MSE of coalescent times relative to nearest grid point. 
 suggest_res <- function(tree, th = .001 ) 
 {
 	#tree = ape::read.tree( system.file('mrsa.nwk', package = 'mlesky') )
