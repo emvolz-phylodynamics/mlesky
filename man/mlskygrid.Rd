@@ -29,7 +29,7 @@ mlskygrid(
 
 \item{sampleTimes}{An optional named vector of sample times for each taxon. Names should correspond to tip labels in trees. This is required if providing a list of trees.}
 
-\item{res}{Length of time axis over which to estimate Ne(t) (integer). If NULL, will search for a good value (see *optim_res_aic*)}
+\item{res}{Length of time axis over which to estimate Ne(t) (integer). If NULL, will heuristically search for a good value}
 
 \item{tau}{Precision parameter. Larger values generate smoother trajectories of Ne(t). If NULL, will optimize using cross-validation.}
 
