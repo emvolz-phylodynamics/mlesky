@@ -126,15 +126,16 @@ suggest_res <- function(tree, th = .001 )
 #' @param res A vector of time axis resolution parameters to test 
 #' @param ncpu Integer number of cores to use with parallel processing 
 #' @param ... Remaining parameters are passed to mlskygrid 
-#~ optim_res_aic <- function(tree, res = c(1:5, seq(10, 100, by = 10)),  ncpu = 1, ... )
-#~ { 
-#~ 	res2aic <- function(r){
-#~ 		ll1 <- mlskygrid( tree, res = r, ncpu =ncpu,  ...)$loglik
-#~ 		 2 * r - 2 * ll1
-#~ 	}
-#~ 	aics <- unlist( parallel::mclapply( res,  res2aic, mc.cores = ncpu ) )
-#~ 	res[ which.min( aics )]
-#~ }
+#' @export 
+optim_res_aic <- function(tree, res = c(1:5, seq(10, 100, by = 10)),  ncpu = 1, ... )
+{ 
+	res2aic <- function(r){
+		ll1 <- mlskygrid( tree, res = r, ncpu =ncpu,  ...)$loglik
+		 2 * r - 2 * ll1
+	}
+	aics <- unlist( parallel::mclapply( res,  res2aic, mc.cores = ncpu ) )
+	res[ which.min( aics )]
+}
 
 #' Optimize the skygrid time axis resolution using BIC criterion
 #' 
@@ -142,15 +143,18 @@ suggest_res <- function(tree, th = .001 )
 #' @param res A vector of time axis resolution parameters to test 
 #' @param ncpu Integer number of cores to use with parallel processing 
 #' @param ... Remaining parameters are passed to mlskygrid 
-#~ optim_res_bic <- function(tree, res = c(1:5, seq(10, 100, by = 10)),  ncpu = 1, ... )
-#~ { 
-#~   res2bic <- function(r){
-#~     ll1 <- mlskygrid( tree, res = r, ncpu =ncpu,  ...)$loglik
-#~     r * log(tree$Nnode) - 2 * ll1
-#~   }
-#~   bics <- unlist( parallel::mclapply( res,  res2bic, mc.cores = ncpu ) )
-#~   res[ which.min( bics )]
-#~ }
+#' @export 
+optim_res_bic <- function(tree, res = c(1:5, seq(10, 100, by = 10)),  ncpu = 1, ... )
+{ 
+  res2bic <- function(r){
+    ll1 <- mlskygrid( tree, res = r, ncpu =ncpu,  ...)$loglik
+    r * log(tree$Nnode) - 2 * ll1
+  }
+  bics <- unlist( parallel::mclapply( res,  res2bic, mc.cores = ncpu ) )
+  res[ which.min( bics )]
+}
+
+
 
 roughness_penalty <- function(logne,dh,tau,b=NULL,model=1){
   y=0
@@ -262,7 +266,7 @@ roughness_penalty <- function(logne,dh,tau,b=NULL,model=1){
 #'
 #' @param tre A dated phylogeny in ape::phylo or treedater format (see documentation for ape). This can also be a multiPhylo or list of trees, in which case each is treated as a clade sampled from within the same population. In this case the sampleTimes vector should be supplied so that clades can be aligned in time. 
 #' @param sampleTimes An optional named vector of sample times for each taxon. Names should correspond to tip labels in trees. This is required if providing a list of trees. 
-#' @param res Length of time axis over which to estimate Ne(t) (integer). If NULL, will search for a good value (see *optim_res_aic*)
+#' @param res Length of time axis over which to estimate Ne(t) (integer). If NULL, will heuristically search for a good value 
 #' @param tau Precision parameter. Larger values generate smoother trajectories of Ne(t). If NULL, will optimize using cross-validation.
 #' @param tau_lower Lower bound for precision parameter if estimating
 #' @param tau_upper Upper bound for precision parameter if estimating
@@ -318,13 +322,13 @@ mlskygrid <- function(tre
 	}	
 	
 	if ( is.null( res )){
-		res = optim_res_aic( tre, tau = tau, tau_lower = tau_lower, tau_upper = tau_upper, tau_tol = tau_tol, ncross = ncross, ncpu = ncpu , quiet = quiet, NeStartTimeBeforePresent = NeStartTimeBeforePresent, ne0 = ne0, adapt_time_axis = adapt_time_axis, sampleTimes=sampleTimes,model=model )
+		res <- suggest_res(tre) 
 	}
 	if ( res < 1) 
 	  stop('The minimum allowable *res* value is 1.')
 	
 	tredat <- .tre2df(apephylo = apephylo,  tre = tre, res = res , maxHeight= NeStartTimeBeforePresent, adapt_time_axis = adapt_time_axis , sampleTimes = sampleTimes )
-	if ( is.null( tau  ) ) {
+	if ( is.null( tau ) ) {
 		if ( is.null(tau_lower) | is.null(tau_upper))
 		 stop('If *tau* is not specified, boundaries *tau_lower* and *tau_upper* must be specified.')
 	}
@@ -368,10 +372,11 @@ mlskygrid <- function(tre
 		  , NeStartTimeBeforePresent = NeStartTimeBeforePresent 
 		  , ne0 = ne0
 		  , adapt_time_axis = adapt_time_axis 
+		  , model = model 
 		  , formula = NULL 
 		  , data = NULL 
 		)
-		
+				
 		X0 <- as.data.frame( model.matrix(  formula , data ) )
 		betanames <- colnames( X0 )[-1]
 		ncovar = length( betanames )
@@ -524,16 +529,89 @@ mlskygrid <- function(tre
 	  , sampleTimes = sampleTimes
 	  , beta = beta 
 	  , covar.df  = covar.df
+	  # other inputs:
+	  , model = model 
+	  , res = res 
+	  , tau_tol = tau_tol 
+	  , ncross = ncross 
+	  , quiet = quiet 
+	  , NeStartTimeBeforePresent = NeStartTimeBeforePresent
+	  , ne0 = ne0 
+	  , adapt_time_axis = adapt_time_axis
+	  , formula = formula 
+	  , data = data
 	)
 	class(rv) <- 'mlskygrid'
 	rv
 }
 
-
+#' Parametric bootstrap for Ne and regression coefficients. 
+#' 
+#' This will simulate coalescent trees conditional on the provided mlesky estimate of Ne. 
+#' The model is refitted to each coalescent tree to provide an estimate of the standard error of Ne estimates over time. 
+#' 
+#' @param fit mlesky fit
+#' @param nrep Number of simulations
+#' @ncpu Number of CPU's
+#' @return A fitted mlesky model with updated confidence intervals for Ne and regression coefficients
+#' @export 
+parboot <- function( fit, nrep = 200 , ncpu = 1)
+{
+	if ( fit$adapt_time_axis )
+		stop( 'parboot not supported with adapt_time_axis==TRUE' )
+	af <- approxfun( fit$time, fit$ne, rule = 2)
+	sts <- fit$sampleTimes
+	if ( is.null( fit$sampleTimes )){
+		sts <- ape::node.depth.edgelength( fit$tre )[ 1:ape::Ntip(fit$tre) ]
+	}
+	message('Simulating coalescent trees for parametric bootstrap: ')
+	progbar = txtProgressBar( min = 1, max = nrep, initial = 1, style = 3 ) 
+	res = parallel::mclapply( 1:nrep, function(irep){
+		tr = simCoal( sts, alphaFun = af )
+		f1 <- mlskygrid( tr
+			  , sampleTimes = sts
+			  , res = fit$res 
+			  , tau = fit$tau
+			  #, tau_lower = fit$tau_lower # note tau fixed  
+			  #, tau_upper = fit$tau_upper # note tau fixed 
+			  , tau_tol = fit$tau_tol 
+			  , ncross = fit$ncross
+			  , quiet = fit$quiet
+			  , NeStartTimeBeforePresent = fit$NeStartTimeBeforePresent 
+			  , ne0 = median( fit$ne ) #note
+			  , adapt_time_axis = FALSE #note re-use time axis 
+			  , formula = fit$formula
+			  , formula_order = fit$formula_order
+			  , data = fit$data
+			  , ncpu = 1 #note, 1 b/c not optimising res or tau 
+			  , model = fit$model 
+		)
+		setTxtProgressBar(progbar,irep)
+		list( ne = f1$ne, beta = f1$beta )
+	} , mc.cores = ncpu)
+	close(progbar)
+	nemat <- do.call( cbind, lapply( res, '[[', 'ne' ) )
+	lognesd <- apply( log( nemat ), MAR=1, sd )
+	fit$ne_ci <- cbind( 
+		nelb= exp( log(fit$ne) - 1.96 * lognesd )
+		, ne = fit$ne
+		, neub =  exp( log(fit$ne) + 1.96 * lognesd )
+		)
+	if ( !is.null( fit$beta ))
+	{
+		betamat <- do.call( cbind, lapply( res, '[[', 'beta' ) )
+		fit$beta_ci <- cbind( 
+			betalb= apply( betamat, MAR = 1 , FUN=function(x) quantile(x, prob=.025 ) )
+			, beta = fit$beta
+			, betaub = apply( betamat, MAR = 1 , FUN=function(x) quantile(x, prob=.975 ) )
+			)
+	}
+	fit 
+}
 
 
 ##############
-.neplot <- function( fit, ggplot=TRUE, logy = TRUE , ylim,... )
+.neplot <- function( fit, ggplot=TRUE, logy = TRUE , ... ) #ylim
 {
   nemed <- nelb <- neub <- NULL
 	stopifnot(inherits(fit, "mlskygrid"))
@@ -544,31 +622,26 @@ mlskygrid <- function(tre
 	  fit$time=rep(fit$time,2)
 	}
 	
-	if (is.null(fit$sampleTimes)) {
-	  fit$time[1]=-sum(fit$tredat$intervalLength)#Force leftmost point to the root date
-	  fit$time[length(fit$time)]=0#Force rightmost point to the most recent leaf date
-    if (!is.null(fit$tre$root.time)) dateLastSample=fit$tre$root.time+max(dist.nodes(fit$tre)[Ntip(fit$tre)+1,]) else dateLastSample=0
-	} else {
-	  fit$time[1]=max(fit$sampleTimes)-sum(fit$tredat$intervalLength)#Force leftmost point to the root date
-	  fit$time[length(fit$time)]=max(fit$sampleTimes)#Force rightmost point to the most recent leaf date
-	  dateLastSample=0
-	}
+	#if (!is.null(fit$sampleTimes)) {
+	#	root_time <- max(fit$sampleTimes)-max(fit$tredat$h)
+	#	fit$time <- fit$time - ( min(fit$time) - root_time )
+	#}
 	
 	ne <- fit$ne_ci
-	if ( 'ggplot2' %in% installed.packages()  & ggplot)
+	if ( 'ggplot2' %in% installed.packages()[,1]  & ggplot)
 	{
-		pldf <- data.frame( t = dateLastSample+fit$time, nelb = ne[,1], nemed = ne[,2], neub = ne[,3] )
+		pldf <- data.frame( t = fit$time, nelb = ne[,1], nemed = ne[,2], neub = ne[,3] )
 		pl <- ggplot2::ggplot( pldf, ggplot2::aes( x = t, y = nemed), ... ) + ggplot2::geom_line() + ggplot2::geom_ribbon( ggplot2::aes( ymin = nelb, ymax = neub), fill = 'blue', alpha = .2) + ggplot2::ylab('Effective population size') + ggplot2::xlab('Time before most recent sample')
 		if (logy) pl <- pl + ggplot2::scale_y_log10()
 		return(pl)
 	} else{
 	  if (!hasArg('ylim')) ylim=range(ne[,1:3],na.rm=T)
 		if (logy)
-			plot( dateLastSample+fit$time, ne[,2], ylim=ylim,lwd =2, col = 'black', type = 'l', log='y',xlab='Time', ylab='Effective population size', ...)
+			plot( fit$time, ne[,2], ylim=ylim,lwd =2, col = 'black', type = 'l', log='y',xlab='Time', ylab='Effective population size', ...)
 		else
-			plot( dateLastSample+fit$time, ne[,2], ylim=ylim,lwd =2, col = 'black', type = 'l',xlab='Time', ylab='Effective population size', ...)
-		lines( dateLastSample+fit$time, ne[,1] , lty=3)
-		lines( dateLastSample+fit$time, ne[,3] , lty=3)
+			plot( fit$time, ne[,2], ylim=ylim,lwd =2, col = 'black', type = 'l',xlab='Time', ylab='Effective population size', ...)
+		lines( fit$time, ne[,1] , lty=3)
+		lines( fit$time, ne[,3] , lty=3)
 		invisible(fit)
 	}
 }
@@ -577,7 +650,8 @@ mlskygrid <- function(tre
 {
   gr<-NULL
 	stopifnot(inherits(fit, "mlskygrid"))
-	if (!is.null(fit$tre$root.time)) dateLastSample=fit$tre$root.time+max(dist.nodes(fit$tre)[Ntip(fit$tre)+1,]) else dateLastSample=0
+	#if (!is.null(fit$tre$root.time)) dateLastSample=fit$tre$root.time+max(dist.nodes(fit$tre)[Ntip(fit$tre)+1,]) else dateLastSample=0
+	dateLastSample=0
 	if ( 'ggplot2' %in% installed.packages()  & ggplot)
 	{
 		pldf <- data.frame( t = dateLastSample+fit$time, gr = fit$growth)
@@ -604,12 +678,12 @@ mlskygrid <- function(tre
 #' @param ... Additional parameters are passed to ggplot or the base plotting function
 #' @return Plotted object 
 #' @export
-plot.mlskygrid <- function(x, growth=FALSE, ggplot=FALSE, logy, ... ){
+plot.mlskygrid <- function(x, growth=FALSE, ggplot=FALSE,logy,  ... ){#logy
 	if (growth) {
-	  if (missing(logy)) logy=F
+	  if (missing(logy)) logy=FALSE
 	  return(.growthplot(x, ggplot, logy, ... ))
 	} else{
-	  if (missing(logy)) logy=T
+	  if (missing(logy)) logy=TRUE
 	  return(.neplot(x, ggplot, logy, ... ))
 	}
 }
