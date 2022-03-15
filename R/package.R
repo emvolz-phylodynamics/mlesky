@@ -11,4 +11,5 @@
 #' @import graphics
 #' @import ape
 #' @import utils
+#' @importFrom methods hasArg
 NULL

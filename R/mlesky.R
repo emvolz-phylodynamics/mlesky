@@ -93,6 +93,9 @@
 
 #' Heuristic selection of grid resolution. Selects res based on  
 #' reduction in MSE of coalescent times relative to nearest grid point. 
+#' @param tree A dated phylogeny in ape::phylo format
+#' @param th Precision parameter
+#' @export 
 suggest_res <- function(tree, th = .001 ) 
 {
 	#tree = ape::read.tree( system.file('mrsa.nwk', package = 'mlesky') )
@@ -104,12 +107,12 @@ suggest_res <- function(tree, th = .001 )
 	rct = range(ct) 
 	k <- 1 
 	x <- seq( rct[1], rct[2], length = k + 2 )
-	l0 <-  sum( apply( sapply( ct, function(y) (y - x)^2 ), MAR = 2, FUN = min ) )
+	l0 <-  sum( apply( sapply( ct, function(y) (y - x)^2 ), MARGIN = 2, FUN = min ) )
 	ll <- l0 
 	repeat{ 
 		k <- k + 1 
 		x <- seq( rct[1], rct[2], length = k + 2 )
-		l <- sum( apply( sapply( ct, function(y) (y - x)^2 ), MAR = 2, FUN = min ) )
+		l <- sum( apply( sapply( ct, function(y) (y - x)^2 ), MARGIN = 2, FUN = min ) )
 		print( c( k, l, x ))
 		if ( (l < (th*l0)) | (ll<=l) ) break
 		#if ( ((ll - l ) / l) < th ) break
@@ -552,7 +555,7 @@ mlskygrid <- function(tre
 #' 
 #' @param fit mlesky fit
 #' @param nrep Number of simulations
-#' @ncpu Number of CPU's
+#' @param ncpu Number of CPUs
 #' @return A fitted mlesky model with updated confidence intervals for Ne and regression coefficients
 #' @export 
 parboot <- function( fit, nrep = 200 , ncpu = 1)
@@ -591,7 +594,7 @@ parboot <- function( fit, nrep = 200 , ncpu = 1)
 	} , mc.cores = ncpu)
 	close(progbar)
 	nemat <- do.call( cbind, lapply( res, '[[', 'ne' ) )
-	lognesd <- apply( log( nemat ), MAR=1, sd )
+	lognesd <- apply( log( nemat ), MARGIN=1, sd )
 	fit$ne_ci <- cbind( 
 		nelb= exp( log(fit$ne) - 1.96 * lognesd )
 		, ne = fit$ne
@@ -601,9 +604,9 @@ parboot <- function( fit, nrep = 200 , ncpu = 1)
 	{
 		betamat <- do.call( cbind, lapply( res, '[[', 'beta' ) )
 		fit$beta_ci <- cbind( 
-			betalb= apply( betamat, MAR = 1 , FUN=function(x) quantile(x, prob=.025 ) )
+			betalb= apply( betamat, MARGIN = 1 , FUN=function(x) quantile(x, prob=.025 ) )
 			, beta = fit$beta
-			, betaub = apply( betamat, MAR = 1 , FUN=function(x) quantile(x, prob=.975 ) )
+			, betaub = apply( betamat, MARGIN = 1 , FUN=function(x) quantile(x, prob=.975 ) )
 			)
 	}
 	fit 

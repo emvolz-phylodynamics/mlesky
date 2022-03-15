@@ -10,6 +10,8 @@ parboot(fit, nrep = 200, ncpu = 1)
 \item{fit}{mlesky fit}
 
 \item{nrep}{Number of simulations}
+
+\item{ncpu}{Number of CPUs}
 }
 \value{
 A fitted mlesky model with updated confidence intervals for Ne and regression coefficients
