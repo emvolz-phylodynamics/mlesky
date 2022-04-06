@@ -9,7 +9,13 @@ Description: Maximum likelihood estimation of effective population size through 
 License: MIT + file LICENSE
 Depends: R(>= 3.4.0)
 Suggests: ggplot2(>= 2.0.0), knitr, rmarkdown
-Imports: ape(>= 5.1), stats, graphics, utils, methods
+Imports: 
+    ape (>= 5.1),
+    stats,
+    graphics,
+    utils,
+    methods,
+    pbmcapply
 VignetteBuilder: knitr
 RoxygenNote: 7.1.2
 Encoding: UTF-8

@@ -2,6 +2,7 @@
 
 S3method(plot,mlskygrid)
 S3method(print,mlskygrid)
+export(boot)
 export(mlskygrid)
 export(optim_res_aic)
 export(optim_res_bic)

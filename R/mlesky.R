@@ -612,6 +612,64 @@ parboot <- function( fit, nrep = 200 , ncpu = 1)
 	fit 
 }
 
+#' Parametric bootstrap for Ne and regression coefficients from a list of trees or a multiPhylo object. 
+#' 
+#' This will receive a mlesky fit and coalescent trees as parameters and calculate confidence intervals based on these.
+#' 
+#' @param fit mlesky fitted object (mlskygrid class)
+#' @param trees list of trees or multiTree object
+#' @param ncpu Number of CPUs
+#' @return A list of fitted mlesky models (length equal to the number of trees provided) with confidence intervals for Ne and regression coefficients
+#' @export 
+boot <- function( fit, trees, ncpu = 1) {
+  stopifnot(inherits(fit, 'mlskygrid'))
+  stopifnot(inherits(trees, c('multiPhylo','list')))
+  all_tips_equal <- function(t) {
+    all(mapply(function(x, y) identical(t[[x]]$tip.label, t[[y]]$tip.label), 1, seq(1, length(t))))}
+  stopifnot(all_tips_equal(trees) == TRUE)
+  
+  af <- approxfun(fit$time, fit$ne, rule = 2)
+  fit$time = af(fit$time)
+  
+  sts = fit$sampleTimes
+  if ( is.null( trees[[1]]$sampleTimes )){
+    sts = ape::node.depth.edgelength( trees[[1]] )[ 1:ape::Ntip(trees[[1]]) ]
+  }
+  
+  message('Calculating mlesky fits for the input trees:')
+  res = pbmcapply::pbmclapply( 1:length(trees), function(irep){
+    f1 <- mlskygrid( trees[[irep]], sampleTimes = sts, res = fit$res,
+                     tau = fit$tau, tau_tol = fit$tau_tol , ncross = fit$ncross,
+                     quiet = fit$quiet, NeStartTimeBeforePresent = fit$NeStartTimeBeforePresent ,
+                     ne0 = median( fit$ne ), adapt_time_axis = FALSE, formula = fit$formula,
+                     formula_order = fit$formula_order, data = fit$data, ncpu = ncpu, model = fit$model )
+    
+    list(ne = f1$ne, beta = f1$beta )
+  }, mc.cores = ncpu)
+  
+  nemat <- do.call( cbind, lapply( res, '[[', 'ne' ) )
+  lognesd <- apply( log( nemat ), MARGIN=1, sd )
+  
+  message('Calculating confidence intervals for the input trees:')
+  ci = pbmcapply::pbmclapply( 1:length(trees), function(cirep){
+    res[[cirep]]$ne_ci <- cbind(
+      nelb= exp( log(res[[cirep]]$ne) - 1.96 * lognesd )
+      , ne = res[[cirep]]$ne
+      , neub =  exp( log(res[[cirep]]$ne) + 1.96 * lognesd )
+    )
+    if ( !is.null( res[[cirep]]$beta )){
+      betamat <- do.call( cbind, lapply( res[[cirep]]$f1, '[[', 'beta' ) )
+      res[[cirep]]$beta_ci <- cbind(
+        betalb= apply( betamat, MARGIN = 1 , FUN=function(x) quantile(x, prob=.025 ) )
+        , beta = res[[cirep]]$beta
+        , betaub = apply( betamat, MARGIN = 1 , FUN=function(x) quantile(x, prob=.975 ) )
+      )
+    }
+    list(ne = res[[cirep]]$ne_ci, beta = res[[cirep]]$beta_ci )
+  }, mc.cores = ncpu)
+  return(ci)
+}
+
 
 ##############
 .neplot <- function( fit, ggplot=TRUE, logy = TRUE , ... ) #ylim
