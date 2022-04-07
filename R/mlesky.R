@@ -624,17 +624,14 @@ parboot <- function( fit, nrep = 200 , ncpu = 1)
 boot <- function( fit, trees, ncpu = 1) {
   stopifnot(inherits(fit, 'mlskygrid'))
   stopifnot(inherits(trees, c('multiPhylo','list')))
-  all_tips_equal <- function(t) {
-    all(mapply(function(x, y) identical(t[[x]]$tip.label, t[[y]]$tip.label), 1, seq(1, length(t))))}
-  stopifnot(all_tips_equal(trees) == TRUE)
-  
-  af <- approxfun(fit$time, fit$ne, rule = 2)
-  fit$time = af(fit$time)
+  all_tips_equal = lapply(1:length(trees), function(x) identical(sort(fit$tre$tip.label), sort(trees[[x]]$tip.label)))
+  stopifnot(all(unlist(all_tips_equal)))
   
   sts = fit$sampleTimes
   if ( is.null( trees[[1]]$sampleTimes )){
     sts = ape::node.depth.edgelength( trees[[1]] )[ 1:ape::Ntip(trees[[1]]) ]
   }
+  names(sts) = fit$tre$tip.label
   
   message('Calculating mlesky fits for the input trees:')
   res = pbmcapply::pbmclapply( 1:length(trees), function(irep){
@@ -643,9 +640,14 @@ boot <- function( fit, trees, ncpu = 1) {
                      quiet = fit$quiet, NeStartTimeBeforePresent = fit$NeStartTimeBeforePresent ,
                      ne0 = median( fit$ne ), adapt_time_axis = FALSE, formula = fit$formula,
                      formula_order = fit$formula_order, data = fit$data, ncpu = ncpu, model = fit$model )
-    
-    list(ne = f1$ne, beta = f1$beta )
+    list(ne = f1$ne, time = f1$time, beta = f1$beta )
   }, mc.cores = ncpu)
+  
+  lapply(1:length(res), function(x) {
+    res[[x]]$af = approx(res[[x]]$time, res[[x]]$ne, xout = fit$time, rule=2)
+    res[[x]]$time = res[[x]]$af$x
+    res[[x]]$ne = res[[x]]$af$y
+  })
   
   nemat <- do.call( cbind, lapply( res, '[[', 'ne' ) )
   lognesd <- apply( log( nemat ), MARGIN=1, sd )
