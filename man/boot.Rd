@@ -2,20 +2,21 @@
 % Please edit documentation in R/mlesky.R
 \name{boot}
 \alias{boot}
-\title{Parametric bootstrap for Ne and regression coefficients from a list of trees or a multiPhylo object.}
+\title{Bootstrap for Ne and regression coefficients}
 \usage{
 boot(fit, trees, ncpu = 1)
 }
 \arguments{
 \item{fit}{mlesky fitted object (mlskygrid class)}
 
-\item{trees}{list of trees or multiTree object}
+\item{trees}{list of trees or ape::multiPhylo object}
 
-\item{ncpu}{Number of CPUs}
+\item{ncpu}{Number of CPUs to use for parallel computation}
 }
 \value{
 A list of fitted mlesky models (length equal to the number of trees provided) with confidence intervals for Ne and regression coefficients
 }
 \description{
-This will receive a mlesky fit and coalescent trees as parameters and calculate confidence intervals based on these.
+The trees provided to this function can be based on a non-parametric bootstrap such as produced by IQ-TREE or PhyML. 
+Confidence intervals for Ne are based on a normal approximation to the bootstrap distribution at each time point.
 }
