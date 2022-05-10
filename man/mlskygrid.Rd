@@ -20,7 +20,6 @@ mlskygrid(
   adapt_time_axis = FALSE,
   model = 1,
   formula = NULL,
-  formula_order = c(0, 1, 2),
   data = NULL
 )
 }
@@ -53,9 +52,7 @@ mlskygrid(
 
 \item{model}{Model to use, can be 1 (=skysigma model), 2 (=skygrid model) or 3 (=skygrowth model)}
 
-\item{formula}{Formula for use of covariates, should not have left hand side}
-
-\item{formula_order}{For use of covariates, lhs is 0'th 1st or 2nd deriv of ne wrt time}
+\item{formula}{Formula for use of covariates. The left hand side should be one of 'diffLogNe', 'logNe' or 'diffDiffLogNe'. For example, if modeling the effect of a single covariate x on growth of Ne, an appropriate formula may be `diffLogNe ~ x - 1` where '-1' specifies that an intercept is not estimated.}
 
 \item{data}{For use of covariates, data.frame must include 'time'}
 }

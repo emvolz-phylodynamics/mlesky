@@ -159,23 +159,41 @@ optim_res_bic <- function(tree, res = c(1:5, seq(10, 100, by = 10)),  ncpu = 1, 
 
 
 
-roughness_penalty <- function(logne,dh,tau,b=NULL,model=1){
-  y=0
-  if (!is.null(b)) y=b
-  if (model==1) {#skysigma model
-    dh2 <- dh[ -c(1, length(dh)) ]
-    rp_terms=dnorm(diff(diff( logne)), y, sd = sqrt(dh2/tau), log = TRUE)
-  }
-  if (model==2) {#skygrid model
-    dh2 <- dh[ -1 ]
-    rp_terms=dnorm(diff(logne), y, sd = sqrt(dh2/tau), log = TRUE)
-  }
-  if (model==3) {#skygrowth model
-    dh2 <- dh[ -c(1, length(dh)) ]
-    rhos=diff(exp(logne))/exp(logne[-length(logne)])
-    rp_terms=dnorm( rhos, y, sd = sqrt(dh2/tau), log = TRUE)
-  }
-  sum(rp_terms)
+roughness_penalty <- function(x,dh,tau,b=NULL,model=1, responsevar = 'logNe'){
+	logne <- rev( x )
+	y=0	
+	B <- rep( 1, length( logne ))
+	if (!is.null(b)) {
+		if ( responsevar == 'logNe' ){
+			B <- b
+		} else if (responsevar == 'diffLogNe' ){
+			B <-  cumsum(b) 
+		} else if (responsevar == 'diffDiffLogNe' ){
+			B <- cumsum( cumsum( b )) 
+		}
+	}
+	
+	if (model==1) {#skysigma model
+		dh2 <- dh[ -c(1, length(dh)) ]
+		y <- diff(diff( B))
+		rp_terms=dnorm(diff(diff( logne)), y, sd = sqrt(dh2/tau), log = TRUE)
+		#plot( b[-1], diff(  logne )) 
+	}
+	
+	if (model==2) {#skygrid model
+		dh2 <- dh[ -1 ]
+		y <- diff ( B ) 
+		rp_terms=dnorm(diff(logne), y, sd = sqrt(dh2/tau), log = TRUE)
+	}
+	
+	if (model==3) { # skygrowth model
+		dh2 <- dh[ -c(1, length(dh)) ]
+		rhos=diff(exp(logne))/exp(logne[-length(logne)])
+		y <- diff(  diff(exp(B))/exp(B[-length(B)])  )
+		rp_terms=dnorm( diff(rhos), y, sd = sqrt(dh2/tau), log = TRUE)
+	}
+	rv = sum(rp_terms)
+	rv
 }
 
 #This function calculates the cross-validation score for a given tau
@@ -221,7 +239,7 @@ roughness_penalty <- function(logne,dh,tau,b=NULL,model=1){
 	
 	of.cv.ws <- function(logne, icross){
 		i = setdiff(1:nrow(tredat) , cvsets[[icross]]  )
-		sum( lterms( logne )[ i ] ) + roughness_penalty( logne,dh,tau,model )
+		sum( lterms( logne )[ i ] ) + roughness_penalty( logne,dh,tau,model = model )
 	}
 	
 	fits <- parallel::mclapply( 1:ncross, function(icross){
@@ -281,8 +299,7 @@ roughness_penalty <- function(logne,dh,tau,b=NULL,model=1){
 #' @param ne0 Vector of length *res* giving starting conditions of Ne(t) for optimization, or a single value which will be used as rep(ne0,res)
 #' @param adapt_time_axis If TRUE will choose Ne(t) change points in periods with high frequency of phylogenetic branching
 #' @param model Model to use, can be 1 (=skysigma model), 2 (=skygrid model) or 3 (=skygrowth model)
-#' @param formula Formula for use of covariates, should not have left hand side
-#' @param formula_order For use of covariates, lhs is 0'th 1st or 2nd deriv of ne wrt time 
+#' @param formula Formula for use of covariates. The left hand side should be one of 'diffLogNe', 'logNe' or 'diffDiffLogNe'. For example, if modeling the effect of a single covariate x on growth of Ne, an appropriate formula may be `diffLogNe ~ x - 1` where '-1' specifies that an intercept is not estimated. 
 #' @param data For use of covariates, data.frame must include 'time' 
 #' @return A fitted model including effective size through time
 #' @export
@@ -304,9 +321,8 @@ mlskygrid <- function(tre
   , NeStartTimeBeforePresent = Inf 
   , ne0 = NULL
   , adapt_time_axis = FALSE 
-  , model=1
+  , model = 1
   , formula = NULL 
-  , formula_order = c( 0, 1, 2) 
   , data = NULL 
 ){
 	apephylo <- tre
@@ -329,7 +345,6 @@ mlskygrid <- function(tre
 	}
 	if ( res < 1) 
 	  stop('The minimum allowable *res* value is 1.')
-	
 	tredat <- .tre2df(apephylo = apephylo,  tre = tre, res = res , maxHeight= NeStartTimeBeforePresent, adapt_time_axis = adapt_time_axis , sampleTimes = sampleTimes )
 	if ( is.null( tau ) ) {
 		if ( is.null(tau_lower) | is.null(tau_upper))
@@ -354,10 +369,11 @@ mlskygrid <- function(tre
 	
 	
 	# if covariates 
-	ncovar = 0 
-	covar.df = NA 
+	ncovar <- 0 
+	covar.df <- NA 
+	responsevar <- 'logNe' # response if using covariates
+	betanames <- c() 
 	if (!is.null( formula )){
-		formula_order = formula_order[1]
 		stopifnot( !is.null(sampleTimes)  ) 
 		stopifnot( !is.null(data)  ) 
 		
@@ -379,35 +395,33 @@ mlskygrid <- function(tre
 		  , formula = NULL 
 		  , data = NULL 
 		)
-				
+		
+		v <- all.vars( formula )
+		if ( !(v[1] %in% c('logNe', 'diffLogNe', 'diffDiffLogNe' ) )) {
+				stop( "Left hand side must be one of 'logNe', 'diffLogNe', or 'diffDiffLogNe' " )
+		}
+		responsevar = v[1] 
+		
+		data$logNe <- 1 
+		data$diffLogNe <- 0 
+		data$diff2LogNe <- 0 
 		X0 <- as.data.frame( model.matrix(  formula , data ) )
-		betanames <- colnames( X0 )[-1]
+		betanames <- colnames( X0 )#[-1] # not counting intercept?
 		ncovar = length( betanames )
 		X0 <- cbind( time = data$time 
 		 , X0 )
-		
-		covar.df <- data.frame( time =fit0$time[-c(1,length(fit0$time))], y = diff(diff(log(fit0$ne)))
-		, logne = log(fit0$ne)[-c(1,length(fit0$time))]  )
+		covar.df <- data.frame( time =fit0$time #[-c(1,length(fit0$time))]
+		  , logNe = log(fit0$ne) #[-c(1,length(fit0$time))]  
+		  , diffLogNe = c( NA, diff( log ( fit0$ne )) )
+		  , diffDiffLogNe = c( NA, diff( diff ( log ( fit0$ne ))), NA )
+		)
 		for ( bn in betanames ){
 			itime <- setdiff( order( X0$time ), which(is.na( X0[[bn]] )) )
 			
 			covar.df[[bn]] <- approx( X0$time[itime] , X0[[bn]][itime], xout = covar.df$time,rule = 2)$y
-			if ( formula_order == 0 ){
-				covar.df[[bn]] <- c( NA, NA,  diff( diff( covar.df[[bn]] )  ) )
-				covar.df[[bn]][1:2] <- covar.df[[bn]][3]
-			}else if ( formula_order ==1  ){
-				covar.df[[bn]] <- c( NA,  diff( covar.df[[bn]] )  )
-				covar.df[[bn]][1] <- covar.df[[bn]][2]
-			}else if ( formula_order == 2){
-				# do nothing 
-			} else{
-				stop('formula_order > 2 not supported')
-			}
 		}
 		covar.df <- covar.df[ order( covar.df$time) , ] 
-		lmfit <- lm ( formula(
-			   paste0( paste( 'y', paste( betanames , collapse = '+'), sep='~' ) , '-1' )
-			 )
+		lmfit <- lm ( formula
 			 , data = covar.df 
 			)
 		
@@ -420,7 +434,7 @@ mlskygrid <- function(tre
 			} else{
 				zedCrossBeta <- covar.df[, betanames] * beta 
 			}
-			rev( zedCrossBeta ) #  b/c reverse time axis of Ne in optimizer
+			zedCrossBeta # NOTE logne is in reverse order in optimizer but this is in forward order
 		}
 	}
 	
@@ -431,10 +445,10 @@ mlskygrid <- function(tre
 		.mlskygrid_oos( tau, tredat, ne0, res =res, maxHeight = NeStartTimeBeforePresent, ncross = ncross, ncpu = ncpu,quiet=quiet,model=model)
 	}
 	if (is.null(tau) && res>=3){
-		cat('Precision parameter *tau* not provided. Computing now....\n')
+		message('Precision parameter *tau* not provided. Computing now....')
 		taustar <- optimize( tauof, lower = tau_lower, upper = tau_upper, maximum = TRUE , tol = tau_tol)
 		tau = taustar$maximum 
-		cat( paste( 'Precision parameter tau = ', tau , '\n') )
+		message( paste( 'Precision parameter tau = ', tau ) )
 	}
 	#/estimate tau 
 	
@@ -455,11 +469,11 @@ mlskygrid <- function(tre
 		if (ncovar == 0) b = NULL else b = tail( theta , ncovar ) 
 		logne = head( theta, length(theta) - ncovar )
 		lt = sum(lterms( logne)) 
-		.beta2zxb = 0
+		.beta2zxb <- NULL
 		if ( ncovar > 0 ){
 			.beta2zxb = beta2zxb(b)
 		}
-		rp = roughness_penalty(logne,dh,tau,.beta2zxb,model=model)
+		rp = roughness_penalty(logne, dh, tau, b=.beta2zxb, model=model, responsevar = responsevar )
 		lt + rp 
 	}
 
@@ -467,10 +481,10 @@ mlskygrid <- function(tre
 	if (ncovar > 0 ){
 		theta0 <- c( theta0, beta0 )
 	}
-	
 	parscale = rep(1, length( theta0 ))
 	if ( ncovar > 0 ){
-		parscale = c( rep(1, length(ne)), abs(median(log(ne)) / beta0  ) )
+		parscale = c( rep(1, length(ne)), abs(beta0) / abs(median(log(ne))   ) ) 
+		parscale[ parscale<=0 ] <- 1
 	}
 	optim( par = theta0, fn = of 
 	  , method = 'BFGS'
@@ -480,20 +494,25 @@ mlskygrid <- function(tre
 		)
 	  , hessian = TRUE 
 	) -> fit
+		
 	
-	fi <- tryCatch( solve( -fit$hessian), error = function(e) {
+	
+	# output 
+	# note reverse axis 
+	theta <- fit$par 
+	
+	H <- -fit$hessian 
+	if ( ncovar > 0 )
+		H <- solve( -fit$hessian[  !(rownames(fit$hessian)%in%betanames), !(rownames(fit$hessian)%in%betanames) ]  )
+	fi <- tryCatch( H, error = function(e) {
 		warning('Hessian could not be computed. Will not compute CIs.')
 		NA
 	})
 	fsigma <- if (!any(is.na(fi))) {
 		sqrt( diag( fi ) )
 	} else{
-		NA
+		rep( NA, length( theta ) - ncovar )
 	}
-	
-	#output 
-	# note reverse axis 
-	theta <- fit$par 
 	logne = theta 
 	beta = NULL 
 	if ( ncovar > 0 ){
@@ -501,14 +520,14 @@ mlskygrid <- function(tre
 		beta <- tail( theta, ncovar )
 	}
 	# reverse 
-	fsigma_ne <- rev( head( fsigma, length( fsigma) - ncovar ) )
+	fsigma_ne <- rev( fsigma )
 	logne <- rev( logne )
 	ne <- exp( logne )
 	nelb <- exp( logne - fsigma_ne*1.96 )
 	neub <- exp( logne + fsigma_ne*1.96 )
 	ne_ci <- cbind( nelb, ne, neub )
 	
-	loglik = of ( fit$par ) - roughness_penalty ( fit$par,dh,tau,model=model )
+	loglik = of ( fit$par ) - roughness_penalty ( fit$par,dh,tau,model=model, responsevar = responsevar  )
 	
 	mst = ifelse( is.null(sampleTimes), 0, max(sampleTimes) )
 	
@@ -584,7 +603,6 @@ parboot <- function( fit, nrep = 200 , ncpu = 1)
 			  , ne0 = median( fit$ne ) #note
 			  , adapt_time_axis = FALSE #note re-use time axis 
 			  , formula = fit$formula
-			  , formula_order = fit$formula_order
 			  , data = fit$data
 			  , ncpu = 1 #note, 1 b/c not optimising res or tau 
 			  , model = fit$model 
@@ -640,7 +658,7 @@ boot <- function( fit, trees, ncpu = 1) {
 					 tau = fit$tau, tau_tol = fit$tau_tol , ncross = fit$ncross,
 					 quiet = fit$quiet, NeStartTimeBeforePresent = fit$NeStartTimeBeforePresent ,
 					 ne0 = median( fit$ne ), adapt_time_axis = FALSE, formula = fit$formula,
-					 formula_order = fit$formula_order, data = fit$data, ncpu = ncpu, model = fit$model )
+					 data = fit$data, ncpu = ncpu, model = fit$model )
 		list(ne = f1$ne, time = f1$time, beta = f1$beta )
 	}, mc.cores = ncpu)
 
