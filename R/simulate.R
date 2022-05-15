@@ -6,9 +6,9 @@
 #' @export
 simCoal = function(dates=1990:2010,alphaFun=function(x){return(10)},alphaMin=NA) {
   if (is.na(alphaMin)) alphaMin=optimize(alphaFun,c(-1e5,max(dates)))$objective
-  s <- sort(dates,decreasing=TRUE,index.return = TRUE)
-  tim <- s$x
-  ind <- s$ix
+  ind <- order( dates, decreasing=TRUE )
+  tim <- dates [ ind  ] #s <- sort(dates,decreasing=TRUE,index.return = TRUE)
+#~   ind <- s$ix
   n <- length(tim)
   nodes <- cbind(-Inf,ind[1],-Inf)#Start with one node at time -Inf and with the first isolate connected to it
   i <- 2
@@ -66,6 +66,8 @@ simCoal = function(dates=1990:2010,alphaFun=function(x){return(10)},alphaMin=NA)
   t=list()
   t$Nnode=n-1
   t$tip.label=as.character(1:n)
+  if (!is.null( names(dates )))
+	t$tip.label <- names(dates)
   t$edge=matrix(NA,2*n-2,2)
   t$edge.length=rep(NA,n*2-2)
   t$root.time=nodes[n+1,1]

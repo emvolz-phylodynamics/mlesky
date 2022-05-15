@@ -98,12 +98,7 @@
 #' @export 
 suggest_res <- function(tree, th = .001 ) 
 {
-	#tree = ape::read.tree( system.file('mrsa.nwk', package = 'mlesky') )
-	#tree = ape::read.tree( system.file('sn02ag2.0.nwk', package = 'mlesky') )
 	ct = tail( ape::node.depth.edgelength( tree ) , ape::Nnode( tree ))
-	#ct <- rnorm( 399, sd = 100 )
-	#~ ct =  rnorm( 1000, mean = 1:100, sd = .25 )
-	#~ ct = rep( 0, 399 )
 	rct = range(ct) 
 	k <- 1 
 	x <- seq( rct[1], rct[2], length = k + 2 )
@@ -534,7 +529,7 @@ mlskygrid <- function(tre
 	h2 <- -c( sort( -tredat$h[ tredat$type == 'neswitch' ] ) , 0)
 	time <- h2  - diff( c(max(tredat$h), h2) )/2
 	time <- mst - time 
-	growthrate  = c( diff( ne ) / ( ne[-length(ne)]* diff(time)  ) , NA) 
+	growthrate  = c( diff( logne ) / diff( time ), NA )
 	rv <- list( 
 		ne =  ne
 	  , ne_ci = ne_ci  
@@ -594,8 +589,6 @@ parboot <- function( fit, nrep = 200 , ncpu = 1)
 			  , sampleTimes = sts
 			  , res = fit$res 
 			  , tau = fit$tau
-			  #, tau_lower = fit$tau_lower # note tau fixed  
-			  #, tau_upper = fit$tau_upper # note tau fixed 
 			  , tau_tol = fit$tau_tol 
 			  , ncross = fit$ncross
 			  , quiet = fit$quiet
