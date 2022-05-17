@@ -601,7 +601,7 @@ parboot <- function( fit, nrep = 200 , ncpu = 1)
 			  , model = fit$model 
 		)
 		setTxtProgressBar(progbar,irep)
-		list( ne = f1$ne, beta = f1$beta )
+		list( ne = f1$ne, beta = f1$beta, growthrate = f1$growthrate )
 	} , mc.cores = ncpu)
 	close(progbar)
 	nemat <- do.call( cbind, lapply( res, '[[', 'ne' ) )
@@ -611,13 +611,20 @@ parboot <- function( fit, nrep = 200 , ncpu = 1)
 		, ne = fit$ne
 		, neub =  exp( log(fit$ne) + 1.96 * lognesd )
 		)
+	grmat <- do.call( cbind, lapply( res, '[[', 'growthrate' ) )
+	grsd <- apply(  grmat, MARGIN=1, sd )
+	fit$growthrate_ci <- cbind( 
+		grlb= fit$growthrate - 1.96 * grsd 
+		 , gr = fit$growthrate
+		 , grub =  fit$growthrate + 1.96 * grsd 
+		)
 	if ( !is.null( fit$beta ))
 	{
 		betamat <- do.call( cbind, lapply( res, '[[', 'beta' ) )
 		fit$beta_ci <- cbind( 
 			betalb= apply( betamat, MARGIN = 1 , FUN=function(x) quantile(x, prob=.025 ) )
-			, beta = fit$beta
-			, betaub = apply( betamat, MARGIN = 1 , FUN=function(x) quantile(x, prob=.975 ) )
+			 , beta = fit$beta
+			 , betaub = apply( betamat, MARGIN = 1 , FUN=function(x) quantile(x, prob=.975 ) )
 			)
 	}
 	fit 
@@ -634,6 +641,7 @@ parboot <- function( fit, nrep = 200 , ncpu = 1)
 #' @return A list of fitted mlesky models (length equal to the number of trees provided) with confidence intervals for Ne and regression coefficients
 #' @export 
 boot <- function( fit, trees, ncpu = 1) {
+	stop('Not implemented')
 	stopifnot(inherits(fit, 'mlskygrid'))
 	stopifnot(inherits(trees, c('multiPhylo','list')))
 	all_tips_equal = sapply(1:length(trees), function(x) identical(sort(fit$tre$tip.label), sort(trees[[x]]$tip.label)))
@@ -652,18 +660,15 @@ boot <- function( fit, trees, ncpu = 1) {
 					 quiet = fit$quiet, NeStartTimeBeforePresent = fit$NeStartTimeBeforePresent ,
 					 ne0 = median( fit$ne ), adapt_time_axis = FALSE, formula = fit$formula,
 					 data = fit$data, ncpu = ncpu, model = fit$model )
-		list(ne = f1$ne, time = f1$time, beta = f1$beta )
+		list(ne = f1$ne, time = f1$time, beta = f1$beta, growthrate = f1$growthrate )
 	}, mc.cores = ncpu)
-
-	lapply(1:length(res), function(x) {
-		res[[x]]$af = approx(res[[x]]$time, res[[x]]$ne, xout = fit$time, rule=2)
-		res[[x]]$time = fit$time
-		res[[x]]$ne = res[[x]]$af$y
-	})
 
 	nemat <- do.call( cbind, lapply( res, '[[', 'ne' ) )
 	lognesd <- apply( log( nemat ), MARGIN=1, sd )
-
+	grmat <- do.call( cbind, lapply( res, '[[', 'growthrate' ))
+	grsd <- apply(  grmat , MARGIN=1, sd )
+	
+	# TODO needs work 
 	message('Calculating confidence intervals for the input trees:')
 	ci = pbmcapply::pbmclapply( 1:length(trees), function(cirep){
 		res[[cirep]]$ne_ci <- cbind(
