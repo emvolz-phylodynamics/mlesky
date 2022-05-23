@@ -108,7 +108,7 @@ suggest_res <- function(tree, th = .001 )
 		k <- k + 1 
 		x <- seq( rct[1], rct[2], length = k + 2 )
 		l <- sum( apply( sapply( ct, function(y) (y - x)^2 ), MARGIN = 2, FUN = min ) )
-		print( c( k, l, x ))
+		#print( c( k, l, x ))
 		if ( (l < (th*l0)) | (ll<=l) ) break
 		#if ( ((ll - l ) / l) < th ) break
 		ll <- l
@@ -584,7 +584,7 @@ parboot <- function( fit, nrep = 200 , ncpu = 1)
 	message('Simulating coalescent trees for parametric bootstrap: ')
 	progbar = txtProgressBar( min = 1, max = nrep, initial = 1, style = 3 ) 
 	res = parallel::mclapply( 1:nrep, function(irep){
-		tr = simCoal( sts, alphaFun = af )
+		tr = ddSimCoal( sts, alphaFun = af, guessRootTime =  min(fit$time) )
 		f1 <- mlskygrid( tr
 			  , sampleTimes = sts
 			  , res = fit$res 
@@ -611,6 +611,11 @@ parboot <- function( fit, nrep = 200 , ncpu = 1)
 		, ne = fit$ne
 		, neub =  exp( log(fit$ne) + 1.96 * lognesd )
 		)
+#~ 	fit$ne_ci <- cbind( 
+#~ 		nelb= apply( nemat, MARGIN=1, function(x) quantile(x, prob=.025) )
+#~ 		, ne = fit$ne
+#~ 		, neub = apply( nemat, MARGIN=1, function(x) quantile(x, prob=.975) )
+#~ 		)
 	grmat <- do.call( cbind, lapply( res, '[[', 'growthrate' ) )
 	grsd <- apply(  grmat, MARGIN=1, sd )
 	fit$growthrate_ci <- cbind( 
