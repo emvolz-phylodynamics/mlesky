@@ -584,7 +584,7 @@ parboot <- function( fit, nrep = 200 , ncpu = 1)
 	message('Simulating coalescent trees for parametric bootstrap: ')
 	progbar = txtProgressBar( min = 1, max = nrep, initial = 1, style = 3 ) 
 	res = parallel::mclapply( 1:nrep, function(irep){
-		tr = ddSimCoal( sts, alphaFun = af, guessRootTime =  min(fit$time) )
+		tr = ddSimCoal( sts, alphaFun = af, guessRootTime = min( c(min(sts), min(fit$time)) ) )
 		f1 <- mlskygrid( tr
 			  , sampleTimes = sts
 			  , res = fit$res 

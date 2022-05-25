@@ -87,7 +87,7 @@ simCoal = function(dates=1990:2010,alphaFun=function(x){return(10)},alphaMin=NA)
  , res = 1e3)
 {
 	mst <- max(dates)
-	stopifnot( guessRootTime < min(dates) )
+	stopifnot( guessRootTime <= min(dates) )
 	dco <- function( t, y, parms ){
 		cumco <- y['cumco'] 
 		A <- max( 1 , y['A']  )
