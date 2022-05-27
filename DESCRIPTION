@@ -1,8 +1,8 @@
 Package: mlesky
 Type: Package
 Title: Maximum likelihood estimation of effective population size through time, growth rates, and phylodynamic regressions
-Version: 0.0.5
-Date: 2022-03-07
+Version: 0.1.4
+Date: 2022-05-25
 Author: Erik Volz, Xavier Didelot
 Maintainer: Erik Volz <erik.volz@gmail.com>
 Description: Maximum likelihood estimation of effective population size through time, growth rates, and phylodynamic regressions with non-genetic covariate time series. A likelihood-based cross-validation technique is used to choose smoothing parameters. 
@@ -15,6 +15,7 @@ Imports:
     graphics,
     utils,
     methods,
+    deSolve,
     pbmcapply
 VignetteBuilder: knitr
 RoxygenNote: 7.1.2
