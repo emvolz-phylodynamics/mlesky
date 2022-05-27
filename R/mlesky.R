@@ -131,7 +131,7 @@ optim_res_aic <- function(tree, res = c(1:5, seq(10, 100, by = 10)),  ncpu = 1, 
 		ll1 <- mlskygrid( tree, res = r, ncpu =ncpu,  ...)$loglik
 		 2 * r - 2 * ll1
 	}
-	aics <- unlist( parallel::mclapply( res,  res2aic, mc.cores = ncpu ) )
+	aics <- unlist( pbmcapply::pbmclapply( res,  res2aic, mc.cores = ncpu ) )
 	res[ which.min( aics )]
 }
 
@@ -148,7 +148,7 @@ optim_res_bic <- function(tree, res = c(1:5, seq(10, 100, by = 10)),  ncpu = 1, 
     ll1 <- mlskygrid( tree, res = r, ncpu =ncpu,  ...)$loglik
     r * log(tree$Nnode) - 2 * ll1
   }
-  bics <- unlist( parallel::mclapply( res,  res2bic, mc.cores = ncpu ) )
+  bics <- unlist( pbmcapply::pbmclapply( res,  res2bic, mc.cores = ncpu ) )
   res[ which.min( bics )]
 }
 
@@ -237,7 +237,7 @@ roughness_penalty <- function(x,dh,tau,b=NULL,model=1, responsevar = 'logNe'){
 		sum( lterms( logne )[ i ] ) + roughness_penalty( logne,dh,tau,model = model )
 	}
 	
-	fits <- parallel::mclapply( 1:ncross, function(icross){
+	fits <- pbmcapply::pbmclapply( 1:ncross, function(icross){
 		optim( par = log(ne), fn = of.cv.ws
 		  , method = 'BFGS'
 		  , control = list( trace = ifelse( quiet ,0, 1), fnscale  = -1 )
@@ -582,8 +582,7 @@ parboot <- function( fit, nrep = 200 , ncpu = 1)
 		sts <- ape::node.depth.edgelength( fit$tre )[ 1:ape::Ntip(fit$tre) ]
 	}
 	message('Simulating coalescent trees for parametric bootstrap: ')
-	progbar = txtProgressBar( min = 1, max = nrep, initial = 1, style = 3 ) 
-	res = parallel::mclapply( 1:nrep, function(irep){
+	res = pbmcapply::pbmclapply( 1:nrep, function(irep){
 		tr = ddSimCoal( sts, alphaFun = af, guessRootTime = min( c(min(sts), min(fit$time)) ) )
 		f1 <- mlskygrid( tr
 			  , sampleTimes = sts
@@ -600,10 +599,8 @@ parboot <- function( fit, nrep = 200 , ncpu = 1)
 			  , ncpu = 1 #note, 1 b/c not optimising res or tau 
 			  , model = fit$model 
 		)
-		setTxtProgressBar(progbar,irep)
 		list( ne = f1$ne, beta = f1$beta, growthrate = f1$growthrate )
 	} , mc.cores = ncpu)
-	close(progbar)
 	nemat <- do.call( cbind, lapply( res, '[[', 'ne' ) )
 	lognesd <- apply( log( nemat ), MARGIN=1, sd )
 	fit$ne_ci <- cbind( 
