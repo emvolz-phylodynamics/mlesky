@@ -496,13 +496,15 @@ mlskygrid <- function(tre
 	# note reverse axis 
 	theta <- fit$par 
 	
-	H <- -fit$hessian 
-	if ( ncovar > 0 )
-		H <- solve( -fit$hessian[  !(rownames(fit$hessian)%in%betanames), !(rownames(fit$hessian)%in%betanames) ]  )
-	fi <- tryCatch( H, error = function(e) {
-		warning('Hessian could not be computed. Will not compute CIs.')
-		NA
-	})
+	# disabling Fisher approx CI's
+	#~ 	H <- -fit$hessian 
+	#~ 	if ( ncovar > 0 )
+	#~ 		H <- solve( -fit$hessian[  !(rownames(fit$hessian)%in%betanames), !(rownames(fit$hessian)%in%betanames) ]  )
+	#~ 	fi <- tryCatch( H, error = function(e) {
+	#~ 		warning('Hessian could not be computed. Will not compute CIs.')
+	#~ 		NA
+	#~ 	})
+	fi <- NA 
 	fsigma <- if (!any(is.na(fi))) {
 		sqrt( diag( fi ) )
 	} else{
