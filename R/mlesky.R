@@ -333,6 +333,8 @@ mlskygrid <- function(tre
 	if (!is.null( sampleTimes )){
 		stopifnot( is.numeric( sampleTimes ))
 		sampleTimes <- sampleTimes[apephylo$tip]
+		if ( any(is.na(sampleTimes)) )
+			stop('Some tip labels could not be matched to sampleTimes')
 	}	
 	
 	if ( is.null( res )){
@@ -645,7 +647,6 @@ parboot <- function( fit, nrep = 200 , ncpu = 1)
 #' @return A list of fitted mlesky models (length equal to the number of trees provided) with confidence intervals for Ne and regression coefficients
 #' @export 
 boot <- function( fit, trees, ncpu = 1) {
-	stop('Not implemented')
 	stopifnot(inherits(fit, 'mlskygrid'))
 	stopifnot(inherits(trees, c('multiPhylo','list')))
 	all_tips_equal = sapply(1:length(trees), function(x) identical(sort(fit$tre$tip.label), sort(trees[[x]]$tip.label)))
@@ -658,39 +659,44 @@ boot <- function( fit, trees, ncpu = 1) {
 	names(sts) = fit$tre$tip.label
 
 	message('Calculating mlesky fits for the input trees:')
+	taxis <- fit$time 
 	res = pbmcapply::pbmclapply( 1:length(trees), function(irep){
 		f1 <- mlskygrid( trees[[irep]], sampleTimes = sts, res = fit$res,
 					 tau = fit$tau, tau_tol = fit$tau_tol , ncross = fit$ncross,
 					 quiet = fit$quiet, NeStartTimeBeforePresent = fit$NeStartTimeBeforePresent ,
 					 ne0 = median( fit$ne ), adapt_time_axis = FALSE, formula = fit$formula,
 					 data = fit$data, ncpu = ncpu, model = fit$model )
-		list(ne = f1$ne, time = f1$time, beta = f1$beta, growthrate = f1$growthrate )
+		af <- approxfun( f1$time, f1$ne, rule = 2)
+		afgr <- approxfun( f1$time, f1$growthrate , rule =2)
+		list(ne = af(taxis), beta = f1$beta, growthrate = afgr(taxis) )
 	}, mc.cores = ncpu)
 
 	nemat <- do.call( cbind, lapply( res, '[[', 'ne' ) )
-	lognesd <- apply( log( nemat ), MARGIN=1, sd )
 	grmat <- do.call( cbind, lapply( res, '[[', 'growthrate' ))
-	grsd <- apply(  grmat , MARGIN=1, sd )
 	
-	# TODO needs work 
-	message('Calculating confidence intervals for the input trees:')
-	ci = pbmcapply::pbmclapply( 1:length(trees), function(cirep){
-		res[[cirep]]$ne_ci <- cbind(
-		  nelb= exp( log(res[[cirep]]$ne) - 1.96 * lognesd )
-		  , ne = res[[cirep]]$ne
-		  , neub =  exp( log(res[[cirep]]$ne) + 1.96 * lognesd )
-		)
-		if ( !is.null( res[[cirep]]$beta )){
-		  betamat <- do.call( cbind, lapply( res[[cirep]]$f1, '[[', 'beta' ) )
-		  res[[cirep]]$beta_ci <- cbind(
+	fit$ne_ci <- cbind( 
+		nelb = unname(  apply( nemat, 1, FUN = function(x) quantile(x, c(.025))) )
+		, ne = unname(  apply( nemat, 1, FUN = function(x) quantile(x, c(.50))) )
+		, neub = unname(  apply( nemat, 1, FUN = function(x) quantile(x, c(.975))) )
+	)
+	
+	fit$growthrate_ci <- cbind( 
+		grlb = unname(  apply( grmat, 1, FUN = function(x) quantile(x, c(.025))) )
+		, gr = unname(  apply( grmat, 1, FUN = function(x) quantile(x, c(.50))) )
+		, grub = unname(  apply( grmat, 1, FUN = function(x) quantile(x, c(.975))) )
+	)
+		
+	if ( !is.null( fit$beta ))
+	{
+		betamat <- do.call( cbind, lapply( res, '[[', 'beta' ) )
+		fit$beta_ci <- cbind( 
 			betalb= apply( betamat, MARGIN = 1 , FUN=function(x) quantile(x, prob=.025 ) )
-			, beta = res[[cirep]]$beta
-			, betaub = apply( betamat, MARGIN = 1 , FUN=function(x) quantile(x, prob=.975 ) )
-		  )
-		}
-		list(ne = res[[cirep]]$ne_ci, beta = res[[cirep]]$beta_ci )
-	}, mc.cores = ncpu)
-	return(ci)
+			 , beta = apply( betamat, MARGIN = 1 , FUN=function(x) quantile(x, prob=.50 ) )
+			 , betaub = apply( betamat, MARGIN = 1 , FUN=function(x) quantile(x, prob=.975 ) )
+			)
+	}
+	
+	fit
 }
 
 
