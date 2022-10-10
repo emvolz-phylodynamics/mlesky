@@ -529,7 +529,7 @@ mlskygrid <- function(tre
 	loglik = of ( fit$par ) - roughness_penalty ( fit$par,dh,tau,model=model, responsevar = responsevar  )
 	
 	mst = ifelse( is.null(sampleTimes), 0, max(sampleTimes) )
-	
+
 	h2 <- -c( sort( -tredat$h[ tredat$type == 'neswitch' ] ) , 0)
 	time <- h2  - diff( c(max(tredat$h), h2) )/2
 	time <- mst - time 
@@ -584,6 +584,7 @@ parboot <- function( fit, nrep = 200 , ncpu = 1)
 	sts <- fit$sampleTimes
 	if ( is.null( fit$sampleTimes )){
 		sts <- ape::node.depth.edgelength( fit$tre )[ 1:ape::Ntip(fit$tre) ]
+		names(sts)=fit$tre$tip.label
 	}
 	message('Simulating coalescent trees for parametric bootstrap: ')
 	res = pbmcapply::pbmclapply( 1:nrep, function(irep){
@@ -701,7 +702,7 @@ boot <- function( fit, trees, ncpu = 1) {
 
 
 ##############
-.neplot <- function( fit, ggplot=TRUE, logy = TRUE , ... ) #ylim
+.neplot <- function( fit, ggplot=TRUE, logy = TRUE , ... ) 
 {
   nemed <- nelb <- neub <- NULL
 	stopifnot(inherits(fit, "mlskygrid"))
@@ -725,11 +726,11 @@ boot <- function( fit, trees, ncpu = 1) {
 		if (logy) pl <- pl + ggplot2::scale_y_log10()
 		return(pl)
 	} else{
-	  if (!hasArg('ylim')) ylim=range(ne[,1:3],na.rm=T)
-		if (logy)
-			plot( fit$time, ne[,2], ylim=ylim,lwd =2, col = 'black', type = 'l', log='y',xlab='Time', ylab='Effective population size', ...)
-		else
-			plot( fit$time, ne[,2], ylim=ylim,lwd =2, col = 'black', type = 'l',xlab='Time', ylab='Effective population size', ...)
+	  if (!hasArg('ylim')) ylim=range(ne[,1:3],na.rm=T) else ylim=list(...)$ylim
+	  args=list(x=fit$time,y=ne[,2],ylim=ylim,lwd =2, col = 'black', type = 'l', xlab='Time', ylab='Effective population size')
+	  if (logy) args=modifyList(args,list(log='y'))
+	  args=modifyList(args,list(...))
+	  do.call(plot,args)
 		lines( fit$time, ne[,1] , lty=3)
 		lines( fit$time, ne[,3] , lty=3)
 		invisible(fit)
@@ -740,19 +741,18 @@ boot <- function( fit, trees, ncpu = 1) {
 {
   gr<-NULL
 	stopifnot(inherits(fit, "mlskygrid"))
-	#if (!is.null(fit$tre$root.time)) dateLastSample=fit$tre$root.time+max(dist.nodes(fit$tre)[Ntip(fit$tre)+1,]) else dateLastSample=0
 	dateLastSample=0
 	if ( 'ggplot2' %in% installed.packages()  & ggplot)
 	{
-		pldf <- data.frame( t = dateLastSample+fit$time, gr = fit$growth)
+		pldf <- data.frame( t = dateLastSample+fit$time, gr = fit$growthrate)
 		pl <- ggplot2::ggplot( pldf, ggplot2::aes( x = t, y = gr), ... ) + ggplot2::geom_line() + ggplot2::ylab('Growth rate') + ggplot2::xlab('Time before most recent sample')
 		if (logy) pl <- pl + ggplot2::scale_y_log10() 
 		return(pl)
 	} else{
 		if (logy)
-			plot( dateLastSample+fit$time, fit$growth, lwd =2, col = 'black', type = 'l', log='y', xlab='Time', ylab='Growth rate',...)
+			plot( dateLastSample+fit$time, fit$growthrate, lwd =2, col = 'black', type = 'l', log='y', xlab='Time', ylab='Growth rate',...)
 		else
-			plot( dateLastSample+fit$time, fit$growth, lwd =2, col = 'black', type = 'l', xlab='Time', ylab='Growth rate', ...)
+			plot( dateLastSample+fit$time, fit$growthrate, lwd =2, col = 'black', type = 'l', xlab='Time', ylab='Growth rate', ...)
 		
 		invisible(fit)
 	}
@@ -768,7 +768,7 @@ boot <- function( fit, trees, ncpu = 1) {
 #' @param ... Additional parameters are passed to ggplot or the base plotting function
 #' @return Plotted object 
 #' @export
-plot.mlskygrid <- function(x, growth=FALSE, ggplot=FALSE,logy,  ... ){#logy
+plot.mlskygrid <- function(x, growth=FALSE, ggplot=FALSE,logy,  ... ){
 	if (growth) {
 	  if (missing(logy)) logy=FALSE
 	  return(.growthplot(x, ggplot, logy, ... ))
