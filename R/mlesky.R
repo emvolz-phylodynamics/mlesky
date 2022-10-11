@@ -584,11 +584,13 @@ parboot <- function( fit, nrep = 200 , ncpu = 1)
 	sts <- fit$sampleTimes
 	if ( is.null( fit$sampleTimes )){
 		sts <- ape::node.depth.edgelength( fit$tre )[ 1:ape::Ntip(fit$tre) ]
+		sts = sts-max(sts)
 		names(sts)=fit$tre$tip.label
 	}
 	message('Simulating coalescent trees for parametric bootstrap: ')
 	res = pbmcapply::pbmclapply( 1:nrep, function(irep){
 		tr = ddSimCoal( sts, alphaFun = af, guessRootTime = min( c(min(sts), min(fit$time)) ) )
+		#tr = simCoal( sts, alphaFun = af)
 		f1 <- mlskygrid( tr
 			  , sampleTimes = sts
 			  , res = fit$res 
