@@ -6,8 +6,9 @@
 \usage{
 ddSimCoal(
   dates = 1990:2010,
-  alphaFun = function(x) {     return(10) },
-  alphaMin = NA,
+  alphaFun = function(x) {
+     return(10)
+ },
   guessRootTime = NA,
   res = 1000,
   A_tol = 0.01

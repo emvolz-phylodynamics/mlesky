@@ -6,7 +6,9 @@
 \usage{
 simCoal(
   dates = 1990:2010,
-  alphaFun = function(x) {     return(10) },
+  alphaFun = function(x) {
+     return(10)
+ },
   alphaMin = NA
 )
 }

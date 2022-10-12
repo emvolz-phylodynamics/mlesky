@@ -4,7 +4,7 @@
 \alias{parboot}
 \title{Parametric bootstrap for Ne and regression coefficients.}
 \usage{
-parboot(fit, nrep = 200, ncpu = 1)
+parboot(fit, nrep = 200, ncpu = 1, dd)
 }
 \arguments{
 \item{fit}{mlesky fit}
@@ -12,6 +12,8 @@ parboot(fit, nrep = 200, ncpu = 1)
 \item{nrep}{Number of simulations}
 
 \item{ncpu}{Number of CPUs}
+
+\item{dd}{Whether or not to use dd simulation method. Default is false for ntip<=500 and true otherwise}
 }
 \value{
 A fitted mlesky model with updated confidence intervals for Ne and regression coefficients

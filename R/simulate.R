@@ -120,7 +120,7 @@ simCoal = function(dates=1990:2010,alphaFun=function(x){return(10)},alphaMin=NA)
 #' @param A_tol Tolerance for reaching time of root >0
 #' @return A simulated dated phylogeny
 #' @export
-ddSimCoal <- function(dates=1990:2010,alphaFun=function(x){return(10)},alphaMin=NA, guessRootTime = NA, res = 1e3, A_tol = 1e-2) {
+ddSimCoal <- function(dates=1990:2010,alphaFun=function(x){return(10)}, guessRootTime = NA, res = 1e3, A_tol = 1e-2) {
 	mst <- max(dates )
 	if ( is.na( guessRootTime )){
 		guessRootTime = min(dates) - 2 * diff(range(dates))#alphaFun( min( dates ))

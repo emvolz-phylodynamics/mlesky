@@ -574,10 +574,14 @@ mlskygrid <- function(tre
 #' @param fit mlesky fit
 #' @param nrep Number of simulations
 #' @param ncpu Number of CPUs
+#' @param dd Whether or not to use dd simulation method. Default is false for ntip<=500 and true otherwise
 #' @return A fitted mlesky model with updated confidence intervals for Ne and regression coefficients
 #' @export 
-parboot <- function( fit, nrep = 200 , ncpu = 1)
+parboot <- function( fit, nrep = 200 , ncpu = 1, dd)
 {
+  if (missing(dd)) {
+    if (Ntip(fit$tre)<=500) dd=F else dd=T
+  }
 	if ( fit$adapt_time_axis )
 		stop( 'parboot not supported with adapt_time_axis==TRUE' )
 	af <- approxfun( fit$time, fit$ne, rule = 2)
@@ -589,8 +593,10 @@ parboot <- function( fit, nrep = 200 , ncpu = 1)
 	}
 	message('Simulating coalescent trees for parametric bootstrap: ')
 	res = pbmcapply::pbmclapply( 1:nrep, function(irep){
-		tr = ddSimCoal( sts, alphaFun = af, guessRootTime = min( c(min(sts), min(fit$time)) ) )
-		#tr = simCoal( sts, alphaFun = af)
+		if (dd==T) 
+		  tr = ddSimCoal( sts, alphaFun = af, guessRootTime = min( c(min(sts), min(fit$time)) ) )
+		else 
+		  tr = simCoal( sts, alphaFun = af)
 		f1 <- mlskygrid( tr
 			  , sampleTimes = sts
 			  , res = fit$res 
