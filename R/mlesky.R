@@ -489,7 +489,7 @@ mlskygrid <- function(tre
 		, fnscale  = -1 
 		, parscale = parscale
 		)
-	  , hessian = TRUE 
+	  , hessian = F 
 	) -> fit
 		
 	

@@ -10,39 +10,7 @@ vignette: >
   %\usepackage[utf8]{inputenc}
 ---
 
-# Constant population size
-
-Skyline, skyride and skygrid models have a tendency to erroneously identify exponential growth in situations where the size is constant. 
-We can ameliorate that error by selecting a smaller time-axis resolution.
-
-Simulate the tree with constant Ne: 
-```{r}
-library(ape)
-library(mlesky)
-set.seed(0)
-tree=rcoal(100)
-tree$edge.length=tree$edge.length*10#So that Ne(t)=10
-plot(tree, show.tip.label = F)
-axisPhylo(backward = T)
-mtext("Years since sampling", side=1, line=3)
-```
-
-Find the best `res`:
-```{r}
-resx = optim_res_aic( tree , ncpu = 8,adapt_time_axis = T)
-print(resx)
-```
-Note that this tests multiple `res` values using multi-core processing. The `ncpu` parameter should be chosen for your system. 
-
-Estimate Ne(t):
-```{r}
-fit <- mlskygrid( tree, res = resx, tau=NULL, tau_lower = 1,tau_upper = 10000,adapt_time_axis = T)
-plot( fit , logy=FALSE)
-```
-
-# Varying population size
-
-Let's consider that the effective population size was of size 10 except between 2000 and 2010 
+Let's consider that the effective population was of size 10 except between 2000 and 2010 
 when it was of size 1 (bottleneck model). Ten samples per year are taken at uniform timepoints 
 between 1990 and 2020. We can simulate such a phylogeny using:
 
@@ -56,20 +24,15 @@ t=simCoal(sampleDates,alphaFun)
 plotBoth(t,alphaFun)
 ```
 
-We now infer the past population size given the phylogeny, with res selected using the AIC criterion:
+We now infer the past population size given the phylogeny:
 
 ```{r}
-res=optim_res_aic(t,ncpu = 2)
-print(res)
-fit=mlskygrid(t,res=res,tau=NULL,tau_lower = 1,tau_upper = 20,ncpu=2)
+fit=mlskygrid(t,res=NULL,tau=NULL,tau_lower = 1,tau_upper = 10000,ncpu=2)
 plot(fit)
 ```
 
-We now infer the past population size given the phylogeny, with res selected using the BIC criterion:
-
+Parametric bootstrap:
 ```{r}
-res=optim_res_bic(t,ncpu = 2)
-print(res)
-fit=mlskygrid(t,res=res,tau=NULL,tau_lower = 1,tau_upper = 20,ncpu=2)
-plot(fit)
+par <- parboot(fit)
+plot(par)
 ```
