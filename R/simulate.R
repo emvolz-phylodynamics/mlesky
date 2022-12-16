@@ -223,5 +223,5 @@ plotBoth = function(tree,alphaFun) {
   xs=seq(from=from,to=to,length.out=100)
   ys=xs
   for (i in 1:length(ys)) ys[i]=alphaFun(ys[i])
-  plot(xs,ys,type='l',xlab='',ylab='Population size', bty='l',ylim=c(0,1.05*max(ys)))
+  plot(xs,ys,type='l',xlab='',ylab='Effective population size', bty='l',ylim=c(0,1.05*max(ys)))
 }
