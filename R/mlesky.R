@@ -125,7 +125,7 @@ suggest_res <- function(tree, th = .001 )
 #' @param ncpu Integer number of cores to use with parallel processing 
 #' @param ... Remaining parameters are passed to mlskygrid 
 #' @export 
-optim_res_aic <- function(tree, res = c(1:5, seq(10, 100, by = 10)),  ncpu = 1, ... )
+optim_res_aic <- function(tree, res = c(1,3,5, seq(10, 100, by = 10)),  ncpu = 1, ... )
 { 
 	res2aic <- function(r){
 		ll1 <- mlskygrid( tree, res = r, ncpu =ncpu,  ...)$loglik
@@ -192,7 +192,9 @@ roughness_penalty <- function(x,dh,tau,b=NULL,model=1, responsevar = 'logNe'){
 }
 
 #This function calculates the cross-validation score for a given tau
-.mlskygrid_oos <- function( tau, tredat, ne0, res = 50, maxHeight = Inf, quiet = TRUE, control = NULL, ncross = 5, ncpu = 1,model=1, cvtype = 'interweaved' ){
+.mlskygrid_oos <- function( tau, tredat, ne0, res = 50, maxHeight = Inf, quiet = TRUE, control = NULL, ncross = 5, ncpu = 1,model=1
+, cvtype = 'interweaved' ){
+#~ , cvtype = 'segmented' ){
 	if ( ncross < 2 ) stop('*ncross* must be at least two')
 	
 	ne=ne0 #ne <- rlnorm( res , log( ne0 ), .2 ) # add some jitter
@@ -281,7 +283,7 @@ roughness_penalty <- function(x,dh,tau,b=NULL,model=1, responsevar = 'logNe'){
 #' 
 #'
 #' @param tre A dated phylogeny in ape::phylo or treedater format (see documentation for ape). This can also be a multiPhylo or list of trees, in which case each is treated as a clade sampled from within the same population. In this case the sampleTimes vector should be supplied so that clades can be aligned in time. 
-#' @param sampleTimes An optional named vector of sample times for each taxon. Names should correspond to tip labels in trees. This is required if providing a list of trees. 
+#' @param sampleTimes An optional named vector of sample times for each taxon. Names should correspond to tip labels in trees. This is required if providing a list of trees or covariates. 
 #' @param res Length of time axis over which to estimate Ne(t) (integer). If NULL, will heuristically search for a good value 
 #' @param tau Precision parameter. Larger values generate smoother trajectories of Ne(t). If NULL, will optimize using cross-validation.
 #' @param tau_lower Lower bound for precision parameter if estimating
@@ -332,9 +334,9 @@ mlskygrid <- function(tre
 	
 	if (!is.null( sampleTimes )){
 		stopifnot( is.numeric( sampleTimes ))
-		sampleTimes <- sampleTimes[apephylo$tip]
-		if ( any(is.na(sampleTimes)) )
+		if ( !all( apephylo$tip.label %in% names(sampleTimes) ) )
 			stop('Some tip labels could not be matched to sampleTimes')
+		sampleTimes <- sampleTimes[apephylo$tip.label]
 	}	
 	
 	if ( is.null( res )){

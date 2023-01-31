@@ -26,7 +26,7 @@ mlskygrid(
 \arguments{
 \item{tre}{A dated phylogeny in ape::phylo or treedater format (see documentation for ape). This can also be a multiPhylo or list of trees, in which case each is treated as a clade sampled from within the same population. In this case the sampleTimes vector should be supplied so that clades can be aligned in time.}
 
-\item{sampleTimes}{An optional named vector of sample times for each taxon. Names should correspond to tip labels in trees. This is required if providing a list of trees.}
+\item{sampleTimes}{An optional named vector of sample times for each taxon. Names should correspond to tip labels in trees. This is required if providing a list of trees or covariates.}
 
 \item{res}{Length of time axis over which to estimate Ne(t) (integer). If NULL, will heuristically search for a good value}
 
