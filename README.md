@@ -18,8 +18,14 @@ are as follows:
     same demographic function
 
 For a complete description of the statistical methodology underpinning
-this package, see our preprint:
-<https://www.biorxiv.org/content/10.1101/2021.01.18.427056v1.full>
+this package, see our paper:
+
+Model design for nonparametric phylodynamic inference and applications
+to pathogen surveillance  
+Xavier Didelot, Vinicius Franceschi, Simon D. W Frost, Ann Dennis, Erik
+M Volz  
+Virus Evolution, Volume 9, Issue 1, 2023, vead028,
+<https://doi.org/10.1093/ve/vead028>
 
 ## Installation
 
