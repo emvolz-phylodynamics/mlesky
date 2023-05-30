@@ -168,7 +168,7 @@ roughness_penalty <- function(x,dh,tau,b=NULL,model=1, responsevar = 'logNe'){
 		}
 	}
 	
-	if (model==1) {#skysigma model
+	if (model==1) {#skykappa model
 		dh2 <- dh[ -c(1, length(dh)) ]
 		y <- diff(diff( B))
 		rp_terms=dnorm(diff(diff( logne)), y, sd = sqrt(dh2/tau), log = TRUE)
@@ -295,7 +295,7 @@ roughness_penalty <- function(x,dh,tau,b=NULL,model=1, responsevar = 'logNe'){
 #' @param NeStartTimeBeforePresent If <Inf, will only estimate Ne(t) between the most recent sample and this time before the most recent sample
 #' @param ne0 Vector of length *res* giving starting conditions of Ne(t) for optimization, or a single value which will be used as rep(ne0,res)
 #' @param adapt_time_axis If TRUE will choose Ne(t) change points in periods with high frequency of phylogenetic branching
-#' @param model Model to use, can be 1 (=skysigma model), 2 (=skygrid model) or 3 (=skygrowth model)
+#' @param model Model to use, can be 1 (=skykappa model), 2 (=skygrid model) or 3 (=skygrowth model)
 #' @param formula Formula for use of covariates. The left hand side should be one of 'diffLogNe', 'logNe' or 'diffDiffLogNe'. For example, if modeling the effect of a single covariate x on growth of Ne, an appropriate formula may be `diffLogNe ~ x - 1` where '-1' specifies that an intercept is not estimated. 
 #' @param data For use of covariates, data.frame must include 'time' 
 #' @return A fitted model including effective size through time

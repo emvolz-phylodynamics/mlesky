@@ -50,7 +50,7 @@ mlskygrid(
 
 \item{adapt_time_axis}{If TRUE will choose Ne(t) change points in periods with high frequency of phylogenetic branching}
 
-\item{model}{Model to use, can be 1 (=skysigma model), 2 (=skygrid model) or 3 (=skygrowth model)}
+\item{model}{Model to use, can be 1 (=skykappa model), 2 (=skygrid model) or 3 (=skygrowth model)}
 
 \item{formula}{Formula for use of covariates. The left hand side should be one of 'diffLogNe', 'logNe' or 'diffDiffLogNe'. For example, if modeling the effect of a single covariate x on growth of Ne, an appropriate formula may be `diffLogNe ~ x - 1` where '-1' specifies that an intercept is not estimated.}
 

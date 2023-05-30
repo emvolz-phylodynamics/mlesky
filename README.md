@@ -7,14 +7,14 @@ This package performs inference of past population size dynamics from a
 dated phylogeny using a maximum likelihood approach. The main features
 are as follows:
 
-  - Three different phylodynamic models are implemented (skygrid,
-    skygrowth and skysigma)
-  - A novel cross-validation approach is used for selecting the
+-   Three different phylodynamic models are implemented (skygrid,
+    skygrowth and skykappa)
+-   A novel cross-validation approach is used for selecting the
     smoothing parameter
-  - The resolution of the grid can be selected using AIC or BIC
-  - Covariate data can be included into the analysis to quantify
+-   The resolution of the grid can be selected using AIC or BIC
+-   Covariate data can be included into the analysis to quantify
     association
-  - Multiple phylogenies can be analysed simultaneously that share the
+-   Multiple phylogenies can be analysed simultaneously that share the
     same demographic function
 
 For a complete description of the statistical methodology underpinning
