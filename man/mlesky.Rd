@@ -2,9 +2,9 @@
 % Please edit documentation in R/package.R
 \name{mlesky}
 \alias{mlesky}
-\title{BactDating: Maximum likelihood estimation of effective population size through time, growth rates, and phylodynamic regressions}
+\title{mlesky: Maximum likelihood estimation of effective population size through time, growth rates, and phylodynamic regressions}
 \description{
-BactDating is a R package to perform Maximum likelihood estimation of effective population size through time, growth rates, and phylodynamic regressions.
+mlesky is a R package to perform Maximum likelihood estimation of effective population size through time, growth rates, and phylodynamic regressions.
 }
 \seealso{
 https://github.com/emvolz-phylodynamics/mlesky

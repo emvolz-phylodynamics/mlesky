@@ -1,7 +1,7 @@
 #' @name mlesky
-#' @title BactDating: Maximum likelihood estimation of effective population size through time, growth rates, and phylodynamic regressions
+#' @title mlesky: Maximum likelihood estimation of effective population size through time, growth rates, and phylodynamic regressions
 #'
-#' @description BactDating is a R package to perform Maximum likelihood estimation of effective population size through time, growth rates, and phylodynamic regressions.
+#' @description mlesky is a R package to perform Maximum likelihood estimation of effective population size through time, growth rates, and phylodynamic regressions.
 #'
 #' @author Erik Volz \email{erik.volz@gmail.com}
 #'
