@@ -59,7 +59,7 @@
 	
 	tredat$ne_bin <- sapply( tredat$h, function(x) sum( ne_haxis  < x ) + 1)
 	
-	ltt.h <- function(h) max(1, sum( shs < h ) - sum( inhs < h ) - sum( rhs < h ) )
+	ltt.h <- function(h) max(1, sum( shs <= h ) - sum( inhs < h ) - sum( rhs < h ) ) # note <= for samples 
 	tredat$ltt <- sapply( tredat$h, ltt.h )
 	
 	tredat$nco <- 0
