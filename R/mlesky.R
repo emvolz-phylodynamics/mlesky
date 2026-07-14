@@ -648,26 +648,41 @@ parboot <- function( fit, nrep = 200 , ncpu = 1, dd)
 }
 
 #' Bootstrap for Ne and regression coefficients
-#' 
-#' The trees provided to this function can be based on a non-parametric bootstrap such as produced by IQ-TREE or PhyML. 
-#' Confidence intervals for Ne are based on a normal approximation to the bootstrap distribution at each time point. 
-#' 
+#'
+#' The trees provided to this function can be based on a non-parametric bootstrap such as produced by IQ-TREE or PhyML.
+#' Confidence intervals for Ne are based on a normal approximation to the bootstrap distribution at each time point.
+#'
 #' @param fit mlesky fitted object (mlskygrid class)
 #' @param trees list of trees or ape::multiPhylo object
 #' @param ncpu Number of CPUs to use for parallel computation
+#' @param sampleTimes Optional named vector of sample times for the taxa in \code{trees}. Names should correspond to the tip labels. If provided, this takes precedence over the sample times stored in the fit and in the trees, and is the recommended way to supply dates when the bootstrap trees are not themselves time-scaled.
 #' @return A list of fitted mlesky models (length equal to the number of trees provided) with confidence intervals for Ne and regression coefficients
-#' @export 
-boot <- function( fit, trees, ncpu = 1) {
+#' @export
+boot <- function( fit, trees, ncpu = 1, sampleTimes = NULL ) {
 	stopifnot(inherits(fit, 'mlskygrid'))
 	stopifnot(inherits(trees, c('multiPhylo','list')))
 	all_tips_equal = sapply(1:length(trees), function(x) identical(sort(fit$tre$tip.label), sort(trees[[x]]$tip.label)))
 	stopifnot(all(all_tips_equal))
 
-	sts = fit$sampleTimes
-	if ( is.null( trees[[1]]$sampleTimes )){
-		sts = ape::node.depth.edgelength( trees[[1]] )[ 1:ape::Ntip(trees[[1]]) ]
+	# Sample times for the bootstrap trees, named by tip label so that mlskygrid can match them
+	# to each tree. Precedence: the sampleTimes argument, then the sample times held by the fit,
+	# then those carried by the trees themselves (treedater keeps them in $sts). Only if none of
+	# these exist do we fall back to tip heights, which are meaningful as dates only when the
+	# input trees are already time-scaled.
+	if ( !is.null( sampleTimes ) ){
+		sts <- sampleTimes
+	} else if ( !is.null( fit$sampleTimes ) ){
+		sts <- fit$sampleTimes
+	} else if ( !is.null( trees[[1]]$sts ) ){
+		sts <- trees[[1]]$sts
+	} else {
+		sts <- ape::node.depth.edgelength( trees[[1]] )[ 1:ape::Ntip(trees[[1]]) ]
+		names(sts) <- trees[[1]]$tip.label
 	}
-	names(sts) = fit$tre$tip.label
+	if ( is.null( names( sts ) ) )
+		names(sts) <- fit$tre$tip.label
+	if ( !all( fit$tre$tip.label %in% names(sts) ) )
+		stop('*sampleTimes* could not be matched to all tip labels in the trees.')
 
 	message('Calculating mlesky fits for the input trees:')
 	taxis <- fit$time 

@@ -4,7 +4,7 @@
 \alias{boot}
 \title{Bootstrap for Ne and regression coefficients}
 \usage{
-boot(fit, trees, ncpu = 1)
+boot(fit, trees, ncpu = 1, sampleTimes = NULL)
 }
 \arguments{
 \item{fit}{mlesky fitted object (mlskygrid class)}
@@ -12,11 +12,13 @@ boot(fit, trees, ncpu = 1)
 \item{trees}{list of trees or ape::multiPhylo object}
 
 \item{ncpu}{Number of CPUs to use for parallel computation}
+
+\item{sampleTimes}{Optional named vector of sample times for the taxa in \code{trees}. Names should correspond to the tip labels. If provided, this takes precedence over the sample times stored in the fit and in the trees, and is the recommended way to supply dates when the bootstrap trees are not themselves time-scaled.}
 }
 \value{
 A list of fitted mlesky models (length equal to the number of trees provided) with confidence intervals for Ne and regression coefficients
 }
 \description{
-The trees provided to this function can be based on a non-parametric bootstrap such as produced by IQ-TREE or PhyML. 
+The trees provided to this function can be based on a non-parametric bootstrap such as produced by IQ-TREE or PhyML.
 Confidence intervals for Ne are based on a normal approximation to the bootstrap distribution at each time point.
 }
