@@ -13,7 +13,7 @@ parboot(fit, nrep = 200, ncpu = 1, dd)
 
 \item{ncpu}{Number of CPUs}
 
-\item{dd}{Whether or not to use dd simulation method. Default is false for ntip<=500 and true otherwise}
+\item{dd}{Whether or not to use the dd simulation method. If missing (the default), neither is used: trees are simulated exactly by time rescaling with \code{\link{tauSimCoal}}, which is faster than \code{\link{simCoal}} for all but the smallest trees and is not subject to the over-dispersion of \code{\link{ddSimCoal}}. Set TRUE or FALSE to force \code{ddSimCoal} or \code{simCoal} respectively.}
 }
 \value{
 A fitted mlesky model with updated confidence intervals for Ne and regression coefficients

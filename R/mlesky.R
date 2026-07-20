@@ -576,14 +576,12 @@ mlskygrid <- function(tre
 #' @param fit mlesky fit
 #' @param nrep Number of simulations
 #' @param ncpu Number of CPUs
-#' @param dd Whether or not to use dd simulation method. Default is false for ntip<=500 and true otherwise
+#' @param dd Whether or not to use the dd simulation method. If missing (the default), neither is used: trees are simulated exactly by time rescaling with \code{\link{tauSimCoal}}, which is faster than \code{\link{simCoal}} for all but the smallest trees and is not subject to the over-dispersion of \code{\link{ddSimCoal}}. Set TRUE or FALSE to force \code{ddSimCoal} or \code{simCoal} respectively.
 #' @return A fitted mlesky model with updated confidence intervals for Ne and regression coefficients
-#' @export 
+#' @export
 parboot <- function( fit, nrep = 200 , ncpu = 1, dd)
 {
-  if (missing(dd)) {
-    if (Ntip(fit$tre)<=500) dd=F else dd=T
-  }
+  if (missing(dd)) dd <- NA
 	if ( fit$adapt_time_axis )
 		stop( 'parboot not supported with adapt_time_axis==TRUE' )
 	af <- approxfun( fit$time, fit$ne, rule = 2)
@@ -595,9 +593,11 @@ parboot <- function( fit, nrep = 200 , ncpu = 1, dd)
 	}
 	message('Simulating coalescent trees for parametric bootstrap: ')
 	res = pbmcapply::pbmclapply( 1:nrep, function(irep){
-		if (dd==T) 
+		if ( is.na(dd) )
+		  tr = tauSimCoal( sts, alphaFun = af )
+		else if (dd==T)
 		  tr = ddSimCoal( sts, alphaFun = af, guessRootTime = min( c(min(sts), min(fit$time)) ) )
-		else 
+		else
 		  tr = simCoal( sts, alphaFun = af)
 		f1 <- mlskygrid( tr
 			  , sampleTimes = sts

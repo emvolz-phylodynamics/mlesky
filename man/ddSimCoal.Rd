@@ -11,7 +11,9 @@ ddSimCoal(
  },
   guessRootTime = NA,
   res = 1000,
-  A_tol = 0.01
+  A_tol = 0.01,
+  horizon = c("tau", "legacy"),
+  maxit = 100
 )
 }
 \arguments{
@@ -24,6 +26,10 @@ ddSimCoal(
 \item{res}{Time axis resolution}
 
 \item{A_tol}{Tolerance for reaching time of root >0}
+
+\item{horizon}{Strategy for extending the time axis until the root is reached. 'tau' (the default) works in rescaled coalescent time and reports an error for population size functions which admit no most recent common ancestor; 'legacy' is the previous heuristic.}
+
+\item{maxit}{Maximum number of iterations of the root time search}
 }
 \value{
 A simulated dated phylogeny
