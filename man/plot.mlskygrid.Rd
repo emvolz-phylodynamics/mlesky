@@ -18,8 +18,14 @@
 \item{...}{Additional parameters are passed to ggplot or the base plotting function}
 }
 \value{
-Plotted object
+A ggplot2 object if \code{ggplot=TRUE} and ggplot2 is installed; otherwise \code{x}, invisibly, after drawing with base graphics
 }
 \description{
 Plot mlskygrid
+}
+\examples{
+tree <- ape::read.tree( system.file( 'mrsa.nwk', package = 'mlesky' ) )
+fit <- mlskygrid( tree, res = 10, tau = 10 )
+plot( fit )
+plot( fit, growth = TRUE )
 }

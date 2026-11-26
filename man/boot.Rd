@@ -11,14 +11,26 @@ boot(fit, trees, ncpu = 1, sampleTimes = NULL)
 
 \item{trees}{list of trees or ape::multiPhylo object}
 
-\item{ncpu}{Number of CPUs to use for parallel computation}
+\item{ncpu}{Number of CPUs to use for parallel computation. Parallel processing is not available on Windows, where ncpu is treated as 1 (with a warning).}
 
 \item{sampleTimes}{Optional named vector of sample times for the taxa in \code{trees}. Names should correspond to the tip labels. If provided, this takes precedence over the sample times stored in the fit and in the trees, and is the recommended way to supply dates when the bootstrap trees are not themselves time-scaled.}
 }
 \value{
-A list of fitted mlesky models (length equal to the number of trees provided) with confidence intervals for Ne and regression coefficients
+The fitted mlesky model \code{fit}, with \code{ne_ci} and \code{growthrate_ci} (and \code{beta_ci} if covariates were used) replaced by the 2.5\%, 50\% and 97.5\% quantiles over the fits to \code{trees}
 }
 \description{
 The trees provided to this function can be based on a non-parametric bootstrap such as produced by IQ-TREE or PhyML.
 Confidence intervals for Ne are based on a normal approximation to the bootstrap distribution at each time point.
+}
+\examples{
+tree <- ape::read.tree( system.file( 'mrsa.nwk', package = 'mlesky' ) )
+fit <- mlskygrid( tree, res = 10, tau = 10 )
+# stand-in for bootstrap trees: perturbed branch lengths
+trees <- lapply( 1:5, function(i){
+	tree$edge.length <- tree$edge.length * runif( length( tree$edge.length ), 0.9, 1.1 )
+	tree
+})
+class( trees ) <- 'multiPhylo'
+fit <- boot( fit, trees )
+plot( fit )
 }

@@ -1,5 +1,20 @@
+.mlesky_env <- new.env( parent = emptyenv() )
+
+# mclapply cannot fork on Windows and errors if mc.cores > 1. Warn once per session,
+# since cross-validation reaches this on every evaluation of tau.
+.pbmclapply <- function( X, FUN, ..., mc.cores = 1 ){
+	if ( .Platform$OS.type == 'windows' && mc.cores > 1 ){
+		if ( !isTRUE( .mlesky_env$warned_windows_ncpu ) ){
+			warning( 'Parallel processing is not available on Windows; ncpu = ', mc.cores, ' was requested but 1 core will be used.', call. = FALSE )
+			.mlesky_env$warned_windows_ncpu <- TRUE
+		}
+		mc.cores <- 1
+	}
+	pbmcapply::pbmclapply( X, FUN, ..., mc.cores = mc.cores )
+}
+
 # derive timeseries of coalescent and ltt along appropriate time axis 
-.tre2df <- function( apephylo, tre, res, maxHeight = Inf, minLTT = 1, adapt_time_axis = F, sampleTimes = NULL ){
+.tre2df <- function( apephylo, tre, res, maxHeight = Inf, minLTT = 1, adapt_time_axis = FALSE, sampleTimes = NULL ){
 	n <- ape::Ntip( apephylo )
 	if (is.null( minLTT)) 
 	  minLTT <- floor( n / 5 ) 
@@ -95,7 +110,11 @@
 #' reduction in MSE of coalescent times relative to nearest grid point. 
 #' @param tree A dated phylogeny in ape::phylo format
 #' @param th Precision parameter
-#' @export 
+#' @return Integer number of grid points suggested for the time axis
+#' @examples
+#' tree <- ape::read.tree( system.file( 'mrsa.nwk', package = 'mlesky' ) )
+#' suggest_res( tree )
+#' @export
 suggest_res <- function(tree, th = .001 ) 
 {
 	ct = tail( ape::node.depth.edgelength( tree ) , ape::Nnode( tree ))
@@ -122,16 +141,20 @@ suggest_res <- function(tree, th = .001 )
 #' 
 #' @param tree A dated phylogeny in ape::phylo format
 #' @param res A vector of time axis resolution parameters to test 
-#' @param ncpu Integer number of cores to use with parallel processing 
-#' @param ... Remaining parameters are passed to mlskygrid 
-#' @export 
+#' @param ncpu Integer number of cores to use with parallel processing. Parallel processing is not available on Windows, where ncpu is treated as 1 (with a warning).
+#' @param ... Remaining parameters are passed to mlskygrid
+#' @return The element of \code{res} with the lowest AIC
+#' @examples
+#' tree <- ape::read.tree( system.file( 'mrsa.nwk', package = 'mlesky' ) )
+#' optim_res_aic( tree, res = c( 5, 10, 20 ) )
+#' @export
 optim_res_aic <- function(tree, res = c(1,3,5, seq(10, 100, by = 10)),  ncpu = 1, ... )
 { 
 	res2aic <- function(r){
 		ll1 <- mlskygrid( tree, res = r, ncpu =ncpu,  ...)$loglik
 		 2 * r - 2 * ll1
 	}
-	aics <- unlist( pbmcapply::pbmclapply( res,  res2aic, mc.cores = ncpu ) )
+	aics <- unlist( .pbmclapply( res,  res2aic, mc.cores = ncpu ) )
 	res[ which.min( aics )]
 }
 
@@ -139,16 +162,20 @@ optim_res_aic <- function(tree, res = c(1,3,5, seq(10, 100, by = 10)),  ncpu = 1
 #' 
 #' @param tree A dated phylogeny in ape::phylo format
 #' @param res A vector of time axis resolution parameters to test 
-#' @param ncpu Integer number of cores to use with parallel processing 
-#' @param ... Remaining parameters are passed to mlskygrid 
-#' @export 
+#' @param ncpu Integer number of cores to use with parallel processing. Parallel processing is not available on Windows, where ncpu is treated as 1 (with a warning).
+#' @param ... Remaining parameters are passed to mlskygrid
+#' @return The element of \code{res} with the lowest BIC
+#' @examples
+#' tree <- ape::read.tree( system.file( 'mrsa.nwk', package = 'mlesky' ) )
+#' optim_res_bic( tree, res = c( 5, 10, 20 ) )
+#' @export
 optim_res_bic <- function(tree, res = c(1:5, seq(10, 100, by = 10)),  ncpu = 1, ... )
 { 
   res2bic <- function(r){
     ll1 <- mlskygrid( tree, res = r, ncpu =ncpu,  ...)$loglik
     r * log(tree$Nnode) - 2 * ll1
   }
-  bics <- unlist( pbmcapply::pbmclapply( res,  res2bic, mc.cores = ncpu ) )
+  bics <- unlist( .pbmclapply( res,  res2bic, mc.cores = ncpu ) )
   res[ which.min( bics )]
 }
 
@@ -239,7 +266,7 @@ roughness_penalty <- function(x,dh,tau,b=NULL,model=1, responsevar = 'logNe'){
 		sum( lterms( logne )[ i ] ) + roughness_penalty( logne,dh,tau,model = model )
 	}
 	
-	fits <- pbmcapply::pbmclapply( 1:ncross, function(icross){
+	fits <- .pbmclapply( 1:ncross, function(icross){
 		optim( par = log(ne), fn = of.cv.ws
 		  , method = 'BFGS'
 		  , control = list( trace = ifelse( quiet ,0, 1), fnscale  = -1 )
@@ -290,7 +317,7 @@ roughness_penalty <- function(x,dh,tau,b=NULL,model=1, responsevar = 'logNe'){
 #' @param tau_upper Upper bound for precision parameter if estimating
 #' @param tau_tol Optimization tolerance when optimizing tau by cross-validation
 #' @param ncross Number of folds in cross-validation
-#' @param ncpu If doing cross-validation, each fold will be handled in parallel if ncpu > 1 (see parallel package)
+#' @param ncpu If doing cross-validation, each fold will be handled in parallel if ncpu > 1 (see parallel package). Parallel processing is not available on Windows, where ncpu is treated as 1 (with a warning).
 #' @param quiet Provide verbose output from optimizer? 
 #' @param NeStartTimeBeforePresent If <Inf, will only estimate Ne(t) between the most recent sample and this time before the most recent sample
 #' @param ne0 Vector of length *res* giving starting conditions of Ne(t) for optimization, or a single value which will be used as rep(ne0,res)
@@ -298,13 +325,17 @@ roughness_penalty <- function(x,dh,tau,b=NULL,model=1, responsevar = 'logNe'){
 #' @param model Model to use, can be 1 (=skykappa model), 2 (=skygrid model) or 3 (=skygrowth model)
 #' @param formula Formula for use of covariates. The left hand side should be one of 'diffLogNe', 'logNe' or 'diffDiffLogNe'. For example, if modeling the effect of a single covariate x on growth of Ne, an appropriate formula may be `diffLogNe ~ x - 1` where '-1' specifies that an intercept is not estimated. 
 #' @param data For use of covariates, data.frame must include 'time' 
-#' @return A fitted model including effective size through time
+#' @return An object of class \code{mlskygrid}, a list including the estimated effective population size \code{ne} at each point of \code{time}, the matrix \code{ne_ci} of lower bound, estimate and upper bound, the growth rate \code{growthrate}, the smoothing parameter \code{tau}, the log-likelihood \code{loglik}, regression coefficients \code{beta} if covariates were used, and the inputs to the fit
+#' @examples
+#' tree <- ape::read.tree( system.file( 'mrsa.nwk', package = 'mlesky' ) )
+#' fit <- mlskygrid( tree, res = 10, tau = 10 )
+#' print( fit )
+#' plot( fit, logy = FALSE )
+#' \donttest{
+#' # choose tau by cross-validation
+#' fit <- mlskygrid( tree, res = 10, tau = NULL, tau_lower = 1, tau_upper = 20 )
+#' }
 #' @export
-# @examples
-# library(mlesky)
-# tree <- read.tree( system.file( package='mlskygrid', 'mrsa.nwk' , mustWork=TRUE) ) 
-# print( (fit <- mlskygrid( tree, tau = 10, NeStartTimeBeforePresent = 15) ))
-# plot( fit , logy = FALSE)
 mlskygrid <- function(tre
   , sampleTimes = NULL
   , res = 25 
@@ -357,7 +388,7 @@ mlskygrid <- function(tre
 			abs(interval.length) * ( lineages * (lineages-1) / 2) 
 		}) -> .ne
 		.ne[ .ne == 0 ] <- NA
-		ne0 <- median( .ne, na.rm=T)
+		ne0 <- median( .ne, na.rm=TRUE)
 		ne0<-rep(ne0,res);ne<-ne0#ne <- rlnorm( res , log( ne0 ), .2 ) # add some jitter
 	} else{
 		if ( length(ne0)==1){
@@ -491,7 +522,7 @@ mlskygrid <- function(tre
 		, fnscale  = -1 
 		, parscale = parscale
 		)
-	  , hessian = F 
+	  , hessian = FALSE 
 	) -> fit
 		
 	
@@ -575,9 +606,14 @@ mlskygrid <- function(tre
 #' 
 #' @param fit mlesky fit
 #' @param nrep Number of simulations
-#' @param ncpu Number of CPUs
+#' @param ncpu Number of CPUs. Parallel processing is not available on Windows, where ncpu is treated as 1 (with a warning).
 #' @param dd Whether or not to use the dd simulation method. If missing (the default), neither is used: trees are simulated exactly by time rescaling with \code{\link{tauSimCoal}}, which is faster than \code{\link{simCoal}} for all but the smallest trees and is not subject to the over-dispersion of \code{\link{ddSimCoal}}. Set TRUE or FALSE to force \code{ddSimCoal} or \code{simCoal} respectively.
 #' @return A fitted mlesky model with updated confidence intervals for Ne and regression coefficients
+#' @examples
+#' tree <- ape::read.tree( system.file( 'mrsa.nwk', package = 'mlesky' ) )
+#' fit <- mlskygrid( tree, res = 10, tau = 10 )
+#' fit <- parboot( fit, nrep = 10 )
+#' plot( fit )
 #' @export
 parboot <- function( fit, nrep = 200 , ncpu = 1, dd)
 {
@@ -592,10 +628,10 @@ parboot <- function( fit, nrep = 200 , ncpu = 1, dd)
 		names(sts)=fit$tre$tip.label
 	}
 	message('Simulating coalescent trees for parametric bootstrap: ')
-	res = pbmcapply::pbmclapply( 1:nrep, function(irep){
+	res = .pbmclapply( 1:nrep, function(irep){
 		if ( is.na(dd) )
 		  tr = tauSimCoal( sts, alphaFun = af )
-		else if (dd==T)
+		else if (dd == TRUE)
 		  tr = ddSimCoal( sts, alphaFun = af, guessRootTime = min( c(min(sts), min(fit$time)) ) )
 		else
 		  tr = simCoal( sts, alphaFun = af)
@@ -654,9 +690,20 @@ parboot <- function( fit, nrep = 200 , ncpu = 1, dd)
 #'
 #' @param fit mlesky fitted object (mlskygrid class)
 #' @param trees list of trees or ape::multiPhylo object
-#' @param ncpu Number of CPUs to use for parallel computation
+#' @param ncpu Number of CPUs to use for parallel computation. Parallel processing is not available on Windows, where ncpu is treated as 1 (with a warning).
 #' @param sampleTimes Optional named vector of sample times for the taxa in \code{trees}. Names should correspond to the tip labels. If provided, this takes precedence over the sample times stored in the fit and in the trees, and is the recommended way to supply dates when the bootstrap trees are not themselves time-scaled.
-#' @return A list of fitted mlesky models (length equal to the number of trees provided) with confidence intervals for Ne and regression coefficients
+#' @return The fitted mlesky model \code{fit}, with \code{ne_ci} and \code{growthrate_ci} (and \code{beta_ci} if covariates were used) replaced by the 2.5\%, 50\% and 97.5\% quantiles over the fits to \code{trees}
+#' @examples
+#' tree <- ape::read.tree( system.file( 'mrsa.nwk', package = 'mlesky' ) )
+#' fit <- mlskygrid( tree, res = 10, tau = 10 )
+#' # stand-in for bootstrap trees: perturbed branch lengths
+#' trees <- lapply( 1:5, function(i){
+#' 	tree$edge.length <- tree$edge.length * runif( length( tree$edge.length ), 0.9, 1.1 )
+#' 	tree
+#' })
+#' class( trees ) <- 'multiPhylo'
+#' fit <- boot( fit, trees )
+#' plot( fit )
 #' @export
 boot <- function( fit, trees, ncpu = 1, sampleTimes = NULL ) {
 	stopifnot(inherits(fit, 'mlskygrid'))
@@ -686,7 +733,7 @@ boot <- function( fit, trees, ncpu = 1, sampleTimes = NULL ) {
 
 	message('Calculating mlesky fits for the input trees:')
 	taxis <- fit$time 
-	res = pbmcapply::pbmclapply( 1:length(trees), function(irep){
+	res = .pbmclapply( 1:length(trees), function(irep){
 		f1 <- mlskygrid( trees[[irep]], sampleTimes = sts, res = fit$res,
 					 tau = fit$tau, tau_tol = fit$tau_tol , ncross = fit$ncross,
 					 quiet = fit$quiet, NeStartTimeBeforePresent = fit$NeStartTimeBeforePresent ,
@@ -744,14 +791,14 @@ boot <- function( fit, trees, ncpu = 1, sampleTimes = NULL ) {
 	#}
 	
 	ne <- fit$ne_ci
-	if ( 'ggplot2' %in% installed.packages()[,1]  & ggplot)
+	if ( ggplot && requireNamespace( 'ggplot2', quietly = TRUE ) )
 	{
 		pldf <- data.frame( t = fit$time, nelb = ne[,1], nemed = ne[,2], neub = ne[,3] )
 		pl <- ggplot2::ggplot( pldf, ggplot2::aes( x = t, y = nemed), ... ) + ggplot2::geom_line() + ggplot2::geom_ribbon( ggplot2::aes( ymin = nelb, ymax = neub), fill = 'blue', alpha = .2) + ggplot2::ylab('Effective population size') + ggplot2::xlab('Time before most recent sample')
 		if (logy) pl <- pl + ggplot2::scale_y_log10()
 		return(pl)
 	} else{
-	  if (!hasArg('ylim')) ylim=range(ne[,1:3],na.rm=T) else ylim=list(...)$ylim
+	  if (!hasArg('ylim')) ylim=range(ne[,1:3],na.rm=TRUE) else ylim=list(...)$ylim
 	  args=list(x=fit$time,y=ne[,2],ylim=ylim,lwd =2, col = 'black', type = 'l', xlab='Time', ylab='Effective population size')
 	  if (logy) args=modifyList(args,list(log='y'))
 	  args=modifyList(args,list(...))
@@ -767,7 +814,7 @@ boot <- function( fit, trees, ncpu = 1, sampleTimes = NULL ) {
   gr<-NULL
 	stopifnot(inherits(fit, "mlskygrid"))
 	dateLastSample=0
-	if ( 'ggplot2' %in% installed.packages()  & ggplot)
+	if ( ggplot && requireNamespace( 'ggplot2', quietly = TRUE ) )
 	{
 		pldf <- data.frame( t = dateLastSample+fit$time, gr = fit$growthrate)
 		pl <- ggplot2::ggplot( pldf, ggplot2::aes( x = t, y = gr), ... ) + ggplot2::geom_line() + ggplot2::ylab('Growth rate') + ggplot2::xlab('Time before most recent sample')
@@ -791,7 +838,12 @@ boot <- function( fit, trees, ncpu = 1, sampleTimes = NULL ) {
 #' @param logy  If TRUE, the plot is returned with logarithmic y-axis (default is TRUE for Ne plot and FALSE for growth plot)
 #' @param ggplot  If TRUE, returns a ggplot2 figure
 #' @param ... Additional parameters are passed to ggplot or the base plotting function
-#' @return Plotted object 
+#' @return A ggplot2 object if \code{ggplot=TRUE} and ggplot2 is installed; otherwise \code{x}, invisibly, after drawing with base graphics
+#' @examples
+#' tree <- ape::read.tree( system.file( 'mrsa.nwk', package = 'mlesky' ) )
+#' fit <- mlskygrid( tree, res = 10, tau = 10 )
+#' plot( fit )
+#' plot( fit, growth = TRUE )
 #' @export
 plot.mlskygrid <- function(x, growth=FALSE, ggplot=FALSE,logy,  ... ){
 	if (growth) {
@@ -807,7 +859,11 @@ plot.mlskygrid <- function(x, growth=FALSE, ggplot=FALSE,logy,  ... ){
 #'
 #' @param x Fitted mlskygrid object 
 #' @param ... Additional parameters are passed on
-#' @export 
+#' @return \code{x}, invisibly
+#' @examples
+#' tree <- ape::read.tree( system.file( 'mrsa.nwk', package = 'mlesky' ) )
+#' print( mlskygrid( tree, res = 10, tau = 10 ) )
+#' @export
 print.mlskygrid <- function( x,... ){
 	stopifnot(inherits(x, "mlskygrid"))
 	d <- as.data.frame( x$ne_ci )

@@ -25,3 +25,7 @@ A simulated dated phylogeny
 \description{
 Simulation of coalescent dated phylogeny
 }
+\examples{
+tree <- simCoal( seq( 2000, 2020, by = 0.5 ), function(x) 10 )
+plot( tree )
+}

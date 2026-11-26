@@ -3,6 +3,9 @@
 #' @param alphaFun Population size function Ne(t)
 #' @param alphaMin Minimum value of alphaFun
 #' @return A simulated dated phylogeny
+#' @examples
+#' tree <- simCoal( seq( 2000, 2020, by = 0.5 ), function(x) 10 )
+#' plot( tree )
 #' @export
 simCoal = function(dates=1990:2010,alphaFun=function(x){return(10)},alphaMin=NA) {
 	if (is.na(alphaMin)) alphaMin=optimize(alphaFun,c(-1e5,max(dates)))$objective
@@ -13,8 +16,8 @@ simCoal = function(dates=1990:2010,alphaFun=function(x){return(10)},alphaMin=NA)
 	i <- 2
 	while (i <= n) {#Graft branches one by one
 		curt <- tim[i]#Current time:start with date of isolate and go back in time until coalescence happens
-		accept=F
-		while (accept==F) {
+		accept=FALSE
+		while (!accept) {
 		  r <- -log(runif(1)) * alphaMin
 		  fi <- which( nodes[ ,1] < curt )[1]
 		  if (fi<=nrow(nodes)) for (j in (fi:nrow(nodes)))  {
@@ -27,7 +30,7 @@ simCoal = function(dates=1990:2010,alphaFun=function(x){return(10)},alphaMin=NA)
 			}
 		  }
 		  #Filtering the Poisson process to obtain non-homogeneous Poisson
-		  if (runif(1)<alphaMin/alphaFun(curt)) accept=T
+		  if (runif(1)<alphaMin/alphaFun(curt)) accept=TRUE
 		}
 		#Create new node
 		a <- nodes[ ,2:3]
@@ -54,7 +57,7 @@ simCoal = function(dates=1990:2010,alphaFun=function(x){return(10)},alphaMin=NA)
 	}
 	v=nrow(nodes)-1
 	if (nrow(nodes)>2) v=c(v,1:(nrow(nodes)-2))
-	nodes=nodes[v,,drop=F]
+	nodes=nodes[v,,drop=FALSE]
 	m=nodes[,2:3]
 	m[which(m>n)]=m[which(m>n)]+1
 	nodes[,2:3]=m
@@ -182,6 +185,9 @@ simCoal = function(dates=1990:2010,alphaFun=function(x){return(10)},alphaMin=NA)
 #' @param horizon Strategy for extending the time axis until the root is reached. 'tau' (the default) works in rescaled coalescent time and reports an error for population size functions which admit no most recent common ancestor; 'legacy' is the previous heuristic.
 #' @param maxit Maximum number of iterations of the root time search
 #' @return A simulated dated phylogeny
+#' @examples
+#' tree <- ddSimCoal( seq( 2000, 2020, by = 0.5 ), function(x) 10 )
+#' plot( tree )
 #' @export
 ddSimCoal <- function(dates=1990:2010,alphaFun=function(x){return(10)}, guessRootTime = NA, res = 1e3, A_tol = 1e-2, horizon = c('tau','legacy'), maxit = 100) {
 	horizon <- match.arg( horizon )
@@ -303,6 +309,10 @@ ddSimCoal <- function(dates=1990:2010,alphaFun=function(x){return(10)}, guessRoo
 #' @param res Resolution of the grid used to tabulate the rescaling
 #' @param maxit Maximum number of iterations when extending the time axis to reach the root
 #' @return A simulated dated phylogeny
+#' @examples
+#' alphaFun <- function(x) if ( x < 2005 ) 10 else 2
+#' tree <- tauSimCoal( seq( 2000, 2020, by = 0.5 ), alphaFun )
+#' plot( tree )
 #' @export
 tauSimCoal <- function(dates=1990:2010, alphaFun=function(x){return(10)}, res = 1e3, maxit = 100)
 {
@@ -407,14 +417,18 @@ tauSimCoal <- function(dates=1990:2010, alphaFun=function(x){return(10)}, res = 
 #' Plot a dated phylogeny and alpha function
 #' @param tree Dated phylogeny
 #' @param alphaFun Population size function Ne(t)
-#' @return Figure
+#' @return No return value; called for its side effect of drawing the tree above the population size function
+#' @examples
+#' alphaFun <- function(x) if ( x < 2005 ) 10 else 2
+#' tree <- simCoal( seq( 2000, 2020, by = 0.5 ), alphaFun )
+#' plotBoth( tree, alphaFun )
 #' @export
 plotBoth = function(tree,alphaFun) {
   oldpar <- par(no.readonly = TRUE)
   on.exit(par(oldpar))
   par(mfrow=c(2,1),mar=c(4,4,1,4))
-  plot(tree,show.tip.label = F)
-  axisPhylo(1,backward = F)
+  plot(tree,show.tip.label = FALSE)
+  axisPhylo(1,backward = FALSE)
   if (!is.null(tree$root.time)) from=tree$root.time else from=-max(dist.nodes(tree)[Ntip(tree)+1,])
   to=from+max(dist.nodes(tree)[Ntip(tree)+1,])
   xs=seq(from=from,to=to,length.out=100)

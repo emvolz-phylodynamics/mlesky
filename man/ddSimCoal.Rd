@@ -37,3 +37,7 @@ A simulated dated phylogeny
 \description{
 Simulation of coalescent dated phylogeny using deterministic/'sideways' distribution of coalescent times
 }
+\examples{
+tree <- ddSimCoal( seq( 2000, 2020, by = 0.5 ), function(x) 10 )
+plot( tree )
+}

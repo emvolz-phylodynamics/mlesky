@@ -29,3 +29,8 @@ A simulated dated phylogeny
 Samples exactly from the coalescent with time varying effective population size.
 Under the rescaling tau = int dt/(2 Ne(t))
 }
+\examples{
+alphaFun <- function(x) if ( x < 2005 ) 10 else 2
+tree <- tauSimCoal( seq( 2000, 2020, by = 0.5 ), alphaFun )
+plot( tree )
+}

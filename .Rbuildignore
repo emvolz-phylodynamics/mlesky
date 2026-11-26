@@ -1,0 +1,10 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^\.claude$
+^LICENSE\.md$
+^README\.Rmd$
+^cran-comments\.md$
+^CRAN-SUBMISSION$
+^test\.R$
+^.*\.tar\.gz$
+^man/figures$

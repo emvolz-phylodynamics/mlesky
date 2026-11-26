@@ -18,7 +18,7 @@ All sequences are subtype CRF02_AG. `treedater` analysis shows a common ancestor
 Here is the `mlesky` analysis 
 
 ```{r} 
-require(mlesky)
+library(mlesky)
 treeHIV <- ape::read.tree( system.file('sn02ag2.0.nwk', package='mlesky') )
 fit <- mlskygrid(treeHIV)
 plot( fit, logy=FALSE)
@@ -27,6 +27,6 @@ plot( fit, logy=FALSE)
 Now we use cross-validation to find the smoothing parameter: 
 
 ```{r} 
-fit <- mlskygrid(treeHIV, tau = NULL, tau_lower = 0.1, tau_upper = 20 , ncpu = 6)
+fit <- mlskygrid(treeHIV, tau = NULL, tau_lower = 0.1, tau_upper = 20 , ncpu = 2)
 plot(fit, logy=FALSE) 
 ```

@@ -11,6 +11,13 @@
 
 \item{...}{Additional parameters are passed on}
 }
+\value{
+\code{x}, invisibly
+}
 \description{
 Print fitted mlskygrid
+}
+\examples{
+tree <- ape::read.tree( system.file( 'mrsa.nwk', package = 'mlesky' ) )
+print( mlskygrid( tree, res = 10, tau = 10 ) )
 }

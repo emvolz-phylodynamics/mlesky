@@ -12,7 +12,14 @@ suggest_res(tree, th = 0.001)
 
 \item{th}{Precision parameter}
 }
+\value{
+Integer number of grid points suggested for the time axis
+}
 \description{
 Heuristic selection of grid resolution. Selects res based on  
 reduction in MSE of coalescent times relative to nearest grid point.
+}
+\examples{
+tree <- ape::read.tree( system.file( 'mrsa.nwk', package = 'mlesky' ) )
+suggest_res( tree )
 }

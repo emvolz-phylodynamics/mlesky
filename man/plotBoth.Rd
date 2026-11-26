@@ -12,8 +12,13 @@ plotBoth(tree, alphaFun)
 \item{alphaFun}{Population size function Ne(t)}
 }
 \value{
-Figure
+No return value; called for its side effect of drawing the tree above the population size function
 }
 \description{
 Plot a dated phylogeny and alpha function
+}
+\examples{
+alphaFun <- function(x) if ( x < 2005 ) 10 else 2
+tree <- simCoal( seq( 2000, 2020, by = 0.5 ), alphaFun )
+plotBoth( tree, alphaFun )
 }

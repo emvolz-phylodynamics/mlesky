@@ -40,7 +40,7 @@ mlskygrid(
 
 \item{ncross}{Number of folds in cross-validation}
 
-\item{ncpu}{If doing cross-validation, each fold will be handled in parallel if ncpu > 1 (see parallel package)}
+\item{ncpu}{If doing cross-validation, each fold will be handled in parallel if ncpu > 1 (see parallel package). Parallel processing is not available on Windows, where ncpu is treated as 1 (with a warning).}
 
 \item{quiet}{Provide verbose output from optimizer?}
 
@@ -57,8 +57,18 @@ mlskygrid(
 \item{data}{For use of covariates, data.frame must include 'time'}
 }
 \value{
-A fitted model including effective size through time
+An object of class \code{mlskygrid}, a list including the estimated effective population size \code{ne} at each point of \code{time}, the matrix \code{ne_ci} of lower bound, estimate and upper bound, the growth rate \code{growthrate}, the smoothing parameter \code{tau}, the log-likelihood \code{loglik}, regression coefficients \code{beta} if covariates were used, and the inputs to the fit
 }
 \description{
 Maximum likelihood non-parametric estimation of effective population size through time
+}
+\examples{
+tree <- ape::read.tree( system.file( 'mrsa.nwk', package = 'mlesky' ) )
+fit <- mlskygrid( tree, res = 10, tau = 10 )
+print( fit )
+plot( fit, logy = FALSE )
+\donttest{
+# choose tau by cross-validation
+fit <- mlskygrid( tree, res = 10, tau = NULL, tau_lower = 1, tau_upper = 20 )
+}
 }

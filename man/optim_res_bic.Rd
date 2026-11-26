@@ -11,10 +11,17 @@ optim_res_bic(tree, res = c(1:5, seq(10, 100, by = 10)), ncpu = 1, ...)
 
 \item{res}{A vector of time axis resolution parameters to test}
 
-\item{ncpu}{Integer number of cores to use with parallel processing}
+\item{ncpu}{Integer number of cores to use with parallel processing. Parallel processing is not available on Windows, where ncpu is treated as 1 (with a warning).}
 
 \item{...}{Remaining parameters are passed to mlskygrid}
 }
+\value{
+The element of \code{res} with the lowest BIC
+}
 \description{
 Optimize the skygrid time axis resolution using BIC criterion
+}
+\examples{
+tree <- ape::read.tree( system.file( 'mrsa.nwk', package = 'mlesky' ) )
+optim_res_bic( tree, res = c( 5, 10, 20 ) )
 }

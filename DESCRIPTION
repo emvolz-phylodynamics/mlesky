@@ -1,15 +1,27 @@
 Package: mlesky
 Type: Package
-Title: Maximum likelihood estimation of effective population size through time, growth rates, and phylodynamic regressions
+Title: Maximum Likelihood Phylodynamic Inference of Population Size
 Version: 0.2.0
-Date: 2026-07-20
-Author: Erik Volz, Xavier Didelot
-Maintainer: Erik Volz <erik.volz@gmail.com>
-Description: Maximum likelihood estimation of effective population size through time, growth rates, and phylodynamic regressions with non-genetic covariate time series. A likelihood-based cross-validation technique is used to choose smoothing parameters. 
+Authors@R: c(
+	person("Erik", "Volz", email = "erik.volz@gmail.com", role = c("aut", "cre", "cph"))
+	, person("Xavier", "Didelot", role = "aut")
+	, person("Vinicius", "Franceschi", role = "ctb")
+	)
+Description: Maximum likelihood estimation of effective population size
+    through time, growth rates, and phylodynamic regressions with
+    non-genetic covariate time series, from one or more dated phylogenies.
+    Skygrid, skygrowth and skykappa models are implemented, a
+    likelihood-based cross-validation technique is used to choose the
+    smoothing parameter, and the resolution of the time grid can be chosen
+    by AIC or BIC. Coalescent simulators with time-varying population size
+    are included for parametric bootstrapping. The methods are described in
+    Didelot et al. (2023) <doi:10.1093/ve/vead028>.
 License: MIT + file LICENSE
-Depends: R(>= 3.4.0)
-Suggests: ggplot2(>= 2.0.0), knitr, rmarkdown
-Imports: 
+URL: https://github.com/emvolz-phylodynamics/mlesky
+BugReports: https://github.com/emvolz-phylodynamics/mlesky/issues
+Depends: R (>= 3.4.0)
+Suggests: ggplot2 (>= 2.0.0), knitr, rmarkdown
+Imports:
     ape (>= 5.1),
     stats,
     graphics,

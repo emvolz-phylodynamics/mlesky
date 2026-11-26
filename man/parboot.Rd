@@ -11,7 +11,7 @@ parboot(fit, nrep = 200, ncpu = 1, dd)
 
 \item{nrep}{Number of simulations}
 
-\item{ncpu}{Number of CPUs}
+\item{ncpu}{Number of CPUs. Parallel processing is not available on Windows, where ncpu is treated as 1 (with a warning).}
 
 \item{dd}{Whether or not to use the dd simulation method. If missing (the default), neither is used: trees are simulated exactly by time rescaling with \code{\link{tauSimCoal}}, which is faster than \code{\link{simCoal}} for all but the smallest trees and is not subject to the over-dispersion of \code{\link{ddSimCoal}}. Set TRUE or FALSE to force \code{ddSimCoal} or \code{simCoal} respectively.}
 }
@@ -21,4 +21,10 @@ A fitted mlesky model with updated confidence intervals for Ne and regression co
 \description{
 This will simulate coalescent trees conditional on the provided mlesky estimate of Ne. 
 The model is refitted to each coalescent tree to provide an estimate of the standard error of Ne estimates over time.
+}
+\examples{
+tree <- ape::read.tree( system.file( 'mrsa.nwk', package = 'mlesky' ) )
+fit <- mlskygrid( tree, res = 10, tau = 10 )
+fit <- parboot( fit, nrep = 10 )
+plot( fit )
 }
